@@ -1,5 +1,5 @@
 from datetime import timedelta
-from datetime import timezone
+from django.utils import timezone
 
 from django.db import models
 
@@ -8,7 +8,7 @@ from apps.users.models import User
 
 
 class VerificationCodes(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="verification_codes")
     code = models.CharField(max_length=6)
     timestamp = models.DateTimeField(auto_now_add=True)
     

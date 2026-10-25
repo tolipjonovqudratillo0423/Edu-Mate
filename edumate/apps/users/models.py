@@ -63,12 +63,12 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
             )
         ]
  
-    def __str__(self):
-        return self.email or f"tg:{self.telegram_id}"
+    # def __str__(self):
+    #     # return self.email or f"tg:{self.telegram_id}"
  
-    def get_full_name(self):
-        profile = getattr(self, "profile", None)
-        return profile.full_name if profile else str(self)
+    # def get_full_name(self):
+    #     profile = getattr(self, "profile", None)
+    #     return profile.full_name if profile else str(self)
 
 
 class Profile(BaseModel):

@@ -1,10 +1,16 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema
 
 from apps.users.models import User
 from apps.common.utils import ResponseMessage
 
-class UserView(APIView):
+
+@extend_schema(
+    summary="About User",
+    tags=["Users"],
+)
+class MeView(APIView):
     
     permission_classes = [IsAuthenticated]
     

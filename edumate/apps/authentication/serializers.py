@@ -10,10 +10,7 @@ class LoginSerializer(serializers.Serializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    
-    # email = serializers.CharField()
-    # first_name = serializers.CharField()
-    # last_name = serializers.CharField()
+
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
     
@@ -57,4 +54,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             )
         user.save()
         return user
-        
+    
+
+
+class VCodeSerializer(serializers.Serializer):
+    
+    code = serializers.CharField()
+    
+    

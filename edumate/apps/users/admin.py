@@ -11,5 +11,15 @@ class UserAdmin(admin.ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'full_name', 'city', 'bio', 'image', 'is_hidden')
+    list_editable = ["is_hidden",]
+    search_fields = [
+        "user__email",
+        "user__first_name",
+        "user__last_name", 
+        "user__telegram_username",
+        "user__telegram_id",
+        "full_name",
+    ]
+    
 
 

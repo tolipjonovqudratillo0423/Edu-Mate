@@ -31,10 +31,6 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     
-    first_name = models.CharField(max_length=30, blank=True)
-    second_name = models.CharField(max_length=30, blank=True)
-    last_name = models.CharField(max_length=30, blank=True)
-    
     email = models.EmailField(unique=True, null=True, blank=True)
     telegram_id = models.BigIntegerField(unique=True, null=True, blank=True)
     telegram_username = models.CharField(max_length=64, blank=True)
@@ -56,30 +52,57 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         verbose_name_plural = "Users"    
             
         constraints = [
-            # Django 5.1+ uses `condition=`; on older versions use `check=`
+           
             models.CheckConstraint(
                 condition=Q(email__isnull=False) | Q(telegram_id__isnull=False),
                 name="user_has_email_or_telegram",
             )
         ]
- 
-    # def __str__(self):
-    #     # return self.email or f"tg:{self.telegram_id}"
- 
-    # def get_full_name(self):
-    #     profile = getattr(self, "profile", None)
-    #     return profile.full_name if profile else str(self)
 
 
 class Profile(BaseModel):
+    
+    class AgeGroup(models.TextChoices):
+        UNDER_18 = "under_18", "Under 18"
+        ADULT = "adult", "18+"
+    
     user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="profile"
+        User,
+        on_delete=models.CASCADE,
+        related_name="profile"
     )
-    full_name = models.CharField(max_length=100)
-    city = models.CharField(max_length=100, blank=True)  # city, NOT home address
-    bio = models.TextField(max_length=500, blank=True)
-    image = models.FileField(upload_to="profile/", null=True, blank=True)
-    is_hidden = models.BooleanField(default=False)
+    full_name = models.CharField(
+        max_length=100
+    )
+    city = models.CharField(
+        max_length=100,
+        blank=True
+    )
+    bio = models.TextField(
+        max_length=500,
+        blank=True
+    )
+    image = models.ImageField(
+        upload_to="profile/",
+        null=True,
+        blank=True
+    )
+    age_group = models.CharField(
+        max_length=10,
+        choices=AgeGroup.choices,
+    )
+    is_hidden = models.BooleanField(
+        default=False
+    )
+    sessions_completed = models.PositiveIntegerField(
+        default=0
+    )
+    avg_rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
  
     def __str__(self):
         return self.full_name
@@ -87,3 +110,17 @@ class Profile(BaseModel):
     class Meta:
         verbose_name = "Profile"
         verbose_name_plural = "Profiles"
+        
+        indexes = [
+            
+            models.Index(
+                fields=["age_group", "user"],
+                name="age_group_user_idx"
+            ),                                  
+            models.Index(
+                fields=["city", "user"],
+                name="city_user_idx"
+            ),
+            
+        ]
+        

@@ -61,7 +61,11 @@ LOCAL_APPS = [
     'apps.users',
     'apps.authentication',
     'apps.common',
+    'apps.matching',
+    'apps.goals',
+    'apps.catalog',
 ]
+
 if DEBUG:
     INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + DEBUG_TOOLS
 else:  

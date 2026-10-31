@@ -31,6 +31,10 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     
+    first_name = models.CharField(max_length=30, blank=True)
+    last_name = models.CharField(max_length=30, blank=True)
+    second_name = models.CharField(max_length=30, blank=True)
+    
     email = models.EmailField(unique=True, null=True, blank=True)
     telegram_id = models.BigIntegerField(unique=True, null=True, blank=True)
     telegram_username = models.CharField(max_length=64, blank=True)

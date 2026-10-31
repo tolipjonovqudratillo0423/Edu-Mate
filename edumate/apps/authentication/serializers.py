@@ -21,6 +21,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
+            "second_name",
             "password",
             "password2"
         ]
@@ -60,5 +61,11 @@ class RegisterSerializer(serializers.ModelSerializer):
 class VCodeSerializer(serializers.Serializer):
     
     code = serializers.CharField()
+    
+    
+
+class RefreshTokenSerializer(serializers.Serializer):
+    
+    refresh = serializers.CharField()
     
     

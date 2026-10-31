@@ -62,7 +62,6 @@ class Goal(BaseModel):
                 ], 
                 name="unique_goal_per_track"
             ),
-            5
         ]
         
         indexes = [

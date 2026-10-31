@@ -1,26 +1,11 @@
 from django.contrib import admin
 
 from apps.goals.models import (
-    Track,
     Goal,
     Availability
 )
 
 
-@admin.register(Track)
-class  TrackAdmin(admin.ModelAdmin):
-    
-    list_display = (
-        "name",
-        "category",
-        "is_active"
-    )
-    list_editable = [
-        "is_active"
-    ]
-    search_fields = (
-        "name",
-    )
 
 
 @admin.register(Goal)

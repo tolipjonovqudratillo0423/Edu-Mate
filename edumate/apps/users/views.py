@@ -2,7 +2,10 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
 
-from apps.users.models import User
+from apps.users.serializers import (
+    UserSerializer, ProfileSerializer
+)
+from apps.users.repositories import UserRepository
 from apps.common.utils import ResponseMessage
 
 
@@ -13,20 +16,61 @@ from apps.common.utils import ResponseMessage
 class MeView(APIView):
     
     permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
     
     def get(self, request):
         
         user = request.user
+        serialzier = self.serializer_class(user)
         
         return ResponseMessage.success(
             message="Successfully logged in",
-            data={"user":{
-                "id": user.id,
-                "email": user.email,
-                "telegram_id": user.telegram_id,
-                "telegram_username": user.telegram_username,
-                "is_active": user.is_active,
-                "is_verified": user.is_verified,
-                "is_onboarded": user.is_onboarded
-            }}
+            data=serialzier.data
         )
+        
+
+@extend_schema(
+    tags=["Users"],
+    summary="Profile APIs",
+    request=ProfileSerializer
+)
+class ProfileView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProfileSerializer
+    
+    def get(self, request):
+       
+        profile = UserRepository.get_user_profile(request.user)
+        
+        serialzier = self.serializer_class(profile)
+        
+        return ResponseMessage.success(
+            message="Profile details",
+            data=serialzier.data
+        )
+        
+    
+    def post(self, request):
+            
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = request.user
+        
+        serializer.save(user=user)
+        
+        return ResponseMessage.success(
+            message="Profile Created!",
+            data=serializer.data
+        )
+           
+            
+            
+            
+            
+        
+
+
+
+    

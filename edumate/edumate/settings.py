@@ -273,8 +273,8 @@ SIMPLE_JWT = {
 # # =========================================================
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Freelance System API',
-    'DESCRIPTION': 'Freelance APIs',
+    'TITLE': 'EduMate API',
+    'DESCRIPTION': 'EduMate APIs',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }

@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
 
-DEBUG = config("DEBUG", cast=bool)
+DEBUG = config("DEBUG", default=False, cast=bool)
 
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
@@ -50,12 +50,13 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt", 
+    "rest_framework_simplejwt.token_blacklist",
     # "django_filters",
     # 'corsheaders',
 ]
 
 DEBUG_TOOLS = [
-    # "silk",
+    "silk",
     'drf_spectacular',
 ]
 
@@ -94,8 +95,10 @@ MIDDLEWARE = [
 
 WSGI_APPLICATION = 'edumate.wsgi.application'
 
-# if DEBUG:
-#     MIDDLEWARE += ["silk.middleware.SilkyMiddleware"]
+if DEBUG:
+    MIDDLEWARE += [
+        "silk.middleware.SilkyMiddleware",
+        ]
 
 
 # =========================================================
@@ -238,7 +241,7 @@ AUTH_USER_MODEL = "users.User"
 REST_FRAMEWORK = {
    
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-   
+    "EXCEPTION_HANDLER": "apps.common.utils.custom_exceptions_handler",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         # "rest_framework.authentication.SessionAuthentication",
@@ -277,6 +280,24 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'EduMate APIs',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'APPEND_COMPONENTS': {
+        "securitySchemes": {
+            # 2. Dedicated Refresh Token Field
+            "RefreshTokenAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "refresh",  # Or whatever header your logout view expects
+                "description": "Enter your raw Refresh Token for logout/blacklist testing"
+            }
+        }
+    },
+    # This applies both fields globally across the UI
+    'SECURITY': [
+        {
+            "BearerAuth": [],
+            "RefreshTokenAuth": [],
+        }
+    ],
 }
 
 

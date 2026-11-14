@@ -1,6 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ValidationError
+from rest_framework import status
 
 from apps.users.serializers import (
     UserSerializer, ProfileSerializer
@@ -58,12 +60,53 @@ class ProfileView(APIView):
         
         user = request.user
         
+        if user.is_onboarded == True:
+            raise ValidationError("User is already onboarded")
+        
+        user.is_onboarded = True
+        user.save(update_fields=["is_onboarded"])
+        
         serializer.save(user=user)
         
         return ResponseMessage.success(
             message="Profile Created!",
-            data=serializer.data
+            data=serializer.data,
+            status=201
         )
+    
+    def put(self, request):
+        
+        user = request.user
+        if user.is_onboarded == False:
+                    raise ValidationError("User is not onboarded")
+        
+        serializer = self.serializer_class(instance=user.profile,data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+    
+        
+        serializer.save(user=user)
+        
+        return ResponseMessage.success(
+            message="Profile Saved!",
+            data=serializer.data,
+            status=status.HTTP_201_CREATED
+        )
+        
+    def delete(self, request):
+        
+        user = request.user
+        if user.is_onboarded == False:
+            raise ValidationError("User is not onboarded")
+        
+        user.is_onboarded = False
+        user.save(update_fields=["is_onboarded"])
+        user.profile.delete()
+        
+        return ResponseMessage.success(
+            message="Profile Deleted!",
+            status=status.HTTP_204_NO_CONTENT
+        )
+        
            
             
             

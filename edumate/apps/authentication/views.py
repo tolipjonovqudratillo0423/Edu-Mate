@@ -233,13 +233,26 @@ class ResendVerificationCode(APIView):
 class LogoutView(APIView):
     
     permission_classes = [IsAuthenticated]
+    serializer_class = TokenRefreshSerializer
 
     def post(self, request):
-        refresh = request.data.get("refresh")
+        
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        refresh = serializer.validated_data["refresh"]
+        
+        
         if not refresh:
             raise ValidationError({"refresh": "This field is required."})
+        
+        token = RefreshToken(refresh)
+        
+        if str(token["user_id"]) != str(request.user.id):
+            raise ValidationError({"refresh": "Invalid or expired token."})
+        
         try:
-            RefreshToken(refresh).blacklist()
+            token.blacklist()
         except TokenError:
             raise ValidationError({"refresh": "Invalid or expired token."})
         return ResponseMessage.success(message="Logged out")
@@ -262,11 +275,12 @@ class RefreshView(APIView):
         
         serializer = self.serializer_class(data=request.data)
         
-        try: 
+        try:
             serializer.is_valid(raise_exception=True)
-        except TokenError as e:
-            raise InvalidToken(
-                e.args[0]
+        except TokenError:
+            return ResponseMessage.error(
+                message="Invalid or expired refresh token",
+                status=status.HTTP_401_UNAUTHORIZED,
             )
         
         return ResponseMessage.success(

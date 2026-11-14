@@ -39,12 +39,18 @@ class ProfileSerializer(serializers.ModelSerializer):
             "age_group",
             "sessions_completed",
             "avg_rating",
+            "is_hidden",
         ]     
         extra_kwargs = {
             "avg_rating": {"read_only":True},
             "sessions_completed": {"read_only":True},
             "user": {"read_only":True} 
         }
+        
+    def validate_age_group(self, value):
+        if self.instance and self.instance.age_group != value:
+            raise serializers.ValidationError("Age group cannot be changed")
+        return value
     
     def create(self, validated_data):
         
@@ -52,6 +58,15 @@ class ProfileSerializer(serializers.ModelSerializer):
             **validated_data
         )
         return profile
+    
+
+    def update(self,  instance, validated_data):
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+    
     
 
         

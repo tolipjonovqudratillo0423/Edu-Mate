@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="EduMate helps students find a compatible study partner and turn shared goals into consistent progress.">
+  <meta name="theme-color" content="#173f35">
+  <title>EduMate — Better, together</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/mock-data.js" defer></script>
+  <script src="js/api.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <div id="app" class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+      <div class="sidebar-head">
+        <a class="brand brand-light" href="#/dashboard" aria-label="EduMate dashboard">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
+          <span>EduMate</span>
+        </a>
+        <button class="icon-btn sidebar-close" id="sidebar-close" aria-label="Close navigation" data-icon="x"></button>
+      </div>
+      <nav class="main-nav">
+        <p class="nav-label">Workspace</p>
+        <a href="#/dashboard" data-route-link="dashboard" data-icon="layout-dashboard">Dashboard</a>
+        <a href="#/partners" data-route-link="partners" data-icon="users">Find partners</a>
+        <a href="#/matches" data-route-link="matches" data-icon="heart-handshake">Requests & matches <span class="nav-count" id="request-count">2</span></a>
+        <a href="#/sessions" data-route-link="sessions" data-icon="calendar-days">Sessions</a>
+        <p class="nav-label nav-label-second">Your space</p>
+        <a href="#/profile" data-route-link="profile" data-icon="user-round">Profile & goals</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="safety-note">
+          <span class="safety-icon" data-icon="shield-check"></span>
+          <div><strong>Your space, your pace.</strong><p>Age-group matching and privacy controls are always on.</p></div>
+        </div>
+        <button class="sidebar-profile" data-nav="profile">
+          <span class="avatar avatar-sm avatar-madina">MA</span>
+          <span><strong>Madina Azimova</strong><small>IELTS Speaking · 16–17</small></span>
+          <span data-icon="chevron-right"></span>
+        </button>
+      </div>
+    </aside>
+    <button class="sidebar-scrim" id="sidebar-scrim" aria-label="Close navigation" tabindex="-1"></button>
+    <div class="app-frame">
+      <header class="topbar">
+        <button class="icon-btn menu-toggle" id="menu-toggle" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false" data-icon="menu"></button>
+        <div class="global-search">
+          <span data-icon="search"></span>
+          <input id="global-search" type="search" placeholder="Search people, tracks, goals…" aria-label="Search people, tracks and goals" autocomplete="off">
+          <kbd>Ctrl K</kbd>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="theme-toggle" aria-label="Switch to dark theme" data-icon="moon"></button>
+          <div class="popover-wrap">
+            <button class="icon-btn notification-btn" id="notification-toggle" aria-label="Notifications, 3 unread" aria-expanded="false" data-icon="bell"><span class="notification-dot"></span></button>
+            <div class="popover notification-popover" id="notification-popover" hidden></div>
+          </div>
+          <div class="popover-wrap">
+            <button class="profile-trigger" id="profile-toggle" aria-label="Open profile menu" aria-expanded="false"><span class="avatar avatar-sm avatar-madina">MA</span><span data-icon="chevron-down"></span></button>
+            <div class="popover profile-popover" id="profile-popover" hidden>
+              <div class="popover-profile"><span class="avatar avatar-madina">MA</span><div><strong>Madina Azimova</strong><small>madina@example.com</small></div></div>
+              <button data-nav="profile" data-icon="user-round">View profile</button>
+              <button id="menu-theme" data-icon="moon">Toggle theme</button>
+              <hr>
+              <button data-nav="landing" data-icon="log-out">Sign out</button>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main id="main-content" class="main-content" tabindex="-1" aria-live="polite"></main>
+    </div>
+  </div>
+  <div id="modal-root"></div>
+  <div id="toast-region" class="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

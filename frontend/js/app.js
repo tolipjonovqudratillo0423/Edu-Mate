@@ -1021,6 +1021,7 @@
             <span>Thursday, Oct 29 · <strong>${user.studyStreak}-day streak 🔥</strong></span>
           </div>
         </div>
+        <span class="badge badge-info">In development · progress and streaks are demo data</span>
 
         <div class="dashboard-grid">
           <!-- Main column -->

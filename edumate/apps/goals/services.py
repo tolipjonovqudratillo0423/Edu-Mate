@@ -2,8 +2,8 @@ from datetime import date
 
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
-from apps.goals.models import Goal
-from apps.goals.repositories import GoalRepository
+from apps.goals.models import Goal, Availability
+from apps.goals.repositories import GoalRepository, AvailabilityRepository
 from apps.users.models import User
 
 
@@ -132,3 +132,68 @@ class GoalService:
         goal = GoalService._get_goal_or_404(goal_id)
         GoalService._assert_owner(goal, user)
         GoalRepository.delete(goal)
+
+
+class AvailabilityService:
+    """
+    Business rules for Availability.
+    Views call service only → service calls repository only.
+    Raises DRF exceptions.
+    """
+
+    # ------------------------------------------------------------------ #
+    # Helpers                                                              #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _get_or_404(avail_id: int) -> Availability:
+        avail = AvailabilityRepository.get_by_id(avail_id)
+        if avail is None:
+            raise NotFound("Availability slot not found.")
+        return avail
+
+    @staticmethod
+    def _assert_owner(avail: Availability, user: User) -> None:
+        if avail.user != user:
+            raise PermissionDenied("You do not have permission to modify this slot.")
+
+    @staticmethod
+    def _check_duplicate(user: User, weekday: int, slot: str, exclude_id: int = None) -> None:
+        """Duplicate (user, weekday, slot) → 400."""
+        if AvailabilityRepository.exists_for_user(user, weekday, slot, exclude_id):
+            raise ValidationError(
+                {"non_field_errors": "You already have this availability slot."}
+            )
+
+    # ------------------------------------------------------------------ #
+    # Public interface                                                     #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def list_my_slots(user: User):
+        return AvailabilityRepository.get_all_for_user(user)
+
+    @staticmethod
+    def create_slot(user: User, validated_data: dict) -> Availability:
+        weekday = validated_data["weekday"]
+        slot = validated_data["slot"]
+        AvailabilityService._check_duplicate(user, weekday, slot)
+        return AvailabilityRepository.create(user, validated_data)
+
+    @staticmethod
+    def update_slot(avail_id: int, user: User, validated_data: dict) -> Availability:
+        avail = AvailabilityService._get_or_404(avail_id)
+        AvailabilityService._assert_owner(avail, user)
+
+        # merge for duplicate check: if weekday/slot not in patch, keep existing
+        weekday = validated_data.get("weekday", avail.weekday)
+        slot = validated_data.get("slot", avail.slot)
+        AvailabilityService._check_duplicate(user, weekday, slot, exclude_id=avail_id)
+
+        return AvailabilityRepository.update(avail, validated_data)
+
+    @staticmethod
+    def delete_slot(avail_id: int, user: User) -> None:
+        avail = AvailabilityService._get_or_404(avail_id)
+        AvailabilityService._assert_owner(avail, user)
+        AvailabilityRepository.delete(avail)

@@ -3,10 +3,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from drf_spectacular.utils import extend_schema
 
-from apps.goals.serializers import GoalSerializer
-from apps.goals.services import GoalService
+from apps.goals.serializers import GoalSerializer, AvailabilitySerializer
+from apps.goals.services import GoalService, AvailabilityService
 from apps.common.utils import ResponseMessage
 
+
+# ======================================================================
+# Goal views
+# ======================================================================
 
 @extend_schema(tags=["Goals"])
 class GoalListCreateView(APIView):
@@ -31,7 +35,6 @@ class GoalListCreateView(APIView):
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        # Cross-field validation + DB write happen inside the service
         goal = GoalService.create_goal(request.user, serializer.validated_data)
         out = self.serializer_class(goal)
         return ResponseMessage.success(
@@ -86,5 +89,71 @@ class GoalDetailView(APIView):
         GoalService.delete_goal(pk, request.user)
         return ResponseMessage.success(
             message="Goal deleted successfully.",
+            status=status.HTTP_204_NO_CONTENT,
+        )
+
+
+# ======================================================================
+# Availability views
+# ======================================================================
+
+@extend_schema(tags=["Availability"])
+class AvailabilityListCreateView(APIView):
+    """
+    GET  /availability/  → list the authenticated user's own slots
+    POST /availability/  → create a new slot (user = request.user)
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = AvailabilitySerializer
+
+    @extend_schema(summary="List my availability slots")
+    def get(self, request):
+        slots = AvailabilityService.list_my_slots(request.user)
+        serializer = self.serializer_class(slots, many=True)
+        return ResponseMessage.success(
+            message="Availability retrieved successfully.",
+            data=serializer.data,
+        )
+
+    @extend_schema(summary="Create an availability slot", request=AvailabilitySerializer)
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        slot = AvailabilityService.create_slot(request.user, serializer.validated_data)
+        out = self.serializer_class(slot)
+        return ResponseMessage.success(
+            message="Availability slot created successfully.",
+            data=out.data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+@extend_schema(tags=["Availability"])
+class AvailabilityDetailView(APIView):
+    """
+    PATCH  /availability/<id>/  → owner only
+    DELETE /availability/<id>/  → owner only
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = AvailabilitySerializer
+
+    @extend_schema(summary="Partially update an availability slot", request=AvailabilitySerializer)
+    def patch(self, request, pk):
+        serializer = self.serializer_class(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        slot = AvailabilityService.update_slot(pk, request.user, serializer.validated_data)
+        out = self.serializer_class(slot)
+        return ResponseMessage.success(
+            message="Availability slot updated successfully.",
+            data=out.data,
+        )
+
+    @extend_schema(summary="Delete an availability slot")
+    def delete(self, request, pk):
+        AvailabilityService.delete_slot(pk, request.user)
+        return ResponseMessage.success(
+            message="Availability slot deleted successfully.",
             status=status.HTTP_204_NO_CONTENT,
         )

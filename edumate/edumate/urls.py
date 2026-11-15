@@ -5,6 +5,7 @@ from django.urls import path, include
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from apps.common.views import redirector
+from apps.goals.views import AvailabilityListCreateView, AvailabilityDetailView
 
 urlpatterns = [
     path("", redirector, name="root"),
@@ -14,8 +15,10 @@ urlpatterns = [
     path('auth/', include('apps.authentication.urls')),
     path('users/', include('apps.users.urls')),
     path('goals/', include('apps.goals.urls')),
-    
-    
+    path('availability/', AvailabilityListCreateView.as_view(), name='availability-root'),
+    path('availability/<int:pk>/', AvailabilityDetailView.as_view(), name='availability-root-detail'),
+    path('matching/', include('apps.matching.urls')),
+    path('', include('apps.matching.urls')),
     
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     # Optional UI:

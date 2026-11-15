@@ -2463,18 +2463,28 @@
 
     const form = mainContent.querySelector('#login-form');
     if (form) {
-      form.addEventListener('submit', (e) => {
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        showToast('Signed in successfully!', 'success', 'check-circle');
-        window.location.hash = '#/dashboard';
+        try {
+          const email = mainContent.querySelector('#login-email').value.trim();
+          const password = mainContent.querySelector('#login-password').value;
+          await EduApi.login(email, password);
+          await EduData.refreshFromBackend();
+          showToast('Signed in successfully!', 'success', 'check-circle');
+          window.location.hash = '#/dashboard';
+        } catch (err) { showToast(err.message || 'Unable to sign in', 'danger', 'alert-circle'); }
       });
     }
 
     const demoBtn = mainContent.querySelector('#btn-fast-demo');
     if (demoBtn) {
-      demoBtn.addEventListener('click', () => {
-        showToast('Welcome, Madina! Loading dashboard...', 'success', 'sparkles');
-        window.location.hash = '#/dashboard';
+      demoBtn.addEventListener('click', async () => {
+        try {
+          await EduApi.login('demo0@edumate.demo', 'demo12345');
+          await EduData.refreshFromBackend();
+          showToast('Welcome to the demo!', 'success', 'sparkles');
+          window.location.hash = '#/dashboard';
+        } catch (err) { showToast(err.message || 'Unable to sign in', 'danger', 'alert-circle'); }
       });
     }
   }

@@ -251,6 +251,23 @@
       return res.data;
     },
 
+    async saveGoalFromForm({ trackName, current, target, deadline, weeklyHours }) {
+      const tracks = await this.getTracks();
+      const track = tracks.find((item) => item.name === trackName || item.slug === trackName.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+      if (!track) throw new Error(`Study track not found: ${trackName}`);
+      const currentScore = Number((current.match(/[\d.]+/) || [])[0]) || 1;
+      const targetScore = Number((target.match(/[\d.]+/) || [])[0]) || 5;
+      const sat = /sat/i.test(trackName);
+      const level = (score) => sat ? (score < 1000 ? 1 : score < 1200 ? 2 : score < 1350 ? 3 : score < 1500 ? 4 : 5) : (score <= 4.5 ? 1 : score <= 5.5 ? 2 : score <= 6.5 ? 3 : score <= 7.5 ? 4 : 5);
+      const month = deadline.match(/^([A-Za-z]+)\s+(\d{4})$/);
+      let isoDeadline = deadline;
+      if (month) {
+        const date = new Date(`${month[1]} 1, ${month[2]}`);
+        if (!Number.isNaN(date.getTime())) isoDeadline = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().slice(0, 10);
+      }
+      return this.createGoal({ track: track.id, current_level: level(currentScore), target_level: level(targetScore), current_score: currentScore, target_score: targetScore, deadline: isoDeadline, weekly_hours: weeklyHours });
+    },
+
     async updateGoal(goalId, goalData) {
       const res = await request(`/goals/${goalId}/`, {
         method: 'PATCH',

@@ -584,14 +584,17 @@
     `;
 
     openModal(modalHtml, (modalEl) => {
-      modalEl.querySelector('#btn-save-goal').addEventListener('click', () => {
+      modalEl.querySelector('#btn-save-goal').addEventListener('click', async () => {
         const title = modalEl.querySelector('#goal-title').value.trim() || 'New Goal';
         const track = modalEl.querySelector('#goal-track').value;
         const current = modalEl.querySelector('#goal-current').value.trim() || 'Beginner';
         const target = modalEl.querySelector('#goal-target').value.trim() || 'Advanced';
         const deadline = modalEl.querySelector('#goal-deadline').value.trim() || '2026';
 
-        EduData.update((state) => {
+        try {
+          await EduApi.saveGoalFromForm({ trackName: track, current, target, deadline, weeklyHours: Number(modalEl.querySelector('#goal-hours').value) || 1 });
+          await EduData.refreshFromBackend();
+          EduData.update((state) => {
           state.user.goals.push({
             id: 'goal-' + Date.now(),
             title: title,
@@ -605,11 +608,10 @@
             sessionsCount: 1,
             isPrimary: false
           });
-        });
+          });
 
-        closeModal();
-        showToast(`Goal "${title}" created!`, 'success', 'check-circle');
-        renderCurrentRoute();
+          closeModal(); showToast(`Goal "${title}" created!`, 'success', 'check-circle'); renderCurrentRoute();
+        } catch (err) { showToast(err.message || 'Could not save goal', 'danger', 'alert-circle'); }
       });
     });
   }
@@ -2029,11 +2031,14 @@
 
     const saveAvailBtn = mainContent.querySelector('#btn-save-avail');
     if (saveAvailBtn) {
-      saveAvailBtn.addEventListener('click', () => {
+      saveAvailBtn.addEventListener('click', async () => {
+        try {
+          await EduApi.saveAvailabilitySchedule(availability);
         EduData.update((state) => {
           state.user.availability = availability;
         });
         showToast('Weekly availability schedule saved!', 'success', 'calendar');
+        } catch (err) { showToast(err.message || 'Could not save availability', 'danger', 'alert-circle'); }
       });
     }
 

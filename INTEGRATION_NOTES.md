@@ -37,3 +37,7 @@ Frontend edited: created js/api.js and js/mock-data.js; edited js/data.js, index
 It was reading api.js and data.js again (verification) when it stopped. Treat all of the above as UNVERIFIED: read it, fix it, finish it.
 
 END OF NOTES
+
+## REMAINING
+- Step A seed_demo command was added but not run or validated; confirm model field names before use.
+- Steps B–E remain: backend login flow and state loading; goal/availability persistence; partner/request/mate actions; in-development badges.

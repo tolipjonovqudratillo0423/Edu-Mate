@@ -336,7 +336,7 @@
     // Partners
     async getPartners(trackId) {
       const res = await request(`/partners/?track=${trackId}`);
-      return res.data || [];
+      return res.data || { max_score: 0, results: [] };
     },
 
     // Match Requests
@@ -363,12 +363,15 @@
     },
 
     async updateMatchRequestStatus(requestId, status) {
+      if (status === 'cancelled') status = 'canceled';
       const res = await request(`/match-requests/${requestId}/`, {
         method: 'PATCH',
         body: JSON.stringify({ status })
       });
       return res.data;
     },
+
+    normalizeRequestStatus(status) { return status === 'canceled' ? 'cancelled' : status; },
 
     // Mates (Active pairs)
     async getMates(statusFilter = 'active') {

@@ -264,7 +264,7 @@
           city: 'Tashkent',
           message: req.message || 'Would love to study and practice together!',
           timeAgo: req.created_at ? new Date(req.created_at).toLocaleDateString() : 'Recent',
-          status: req.status
+          status: window.EduApi.normalizeRequestStatus(req.status)
         };
       });
 
@@ -284,7 +284,7 @@
           city: 'Tashkent',
           message: req.message || 'Study partner request sent.',
           timeAgo: req.created_at ? new Date(req.created_at).toLocaleDateString() : 'Recent',
-          status: req.status
+          status: window.EduApi.normalizeRequestStatus(req.status)
         };
       });
 

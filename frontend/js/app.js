@@ -1654,8 +1654,9 @@
 
     // Accept request
     mainContent.querySelectorAll('[data-action="accept-req"]').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const reqId = btn.getAttribute('data-id');
+        try { await EduApi.updateMatchRequestStatus(reqId, 'accepted'); await EduData.refreshFromBackend(); } catch (err) { showToast(err.message, 'danger', 'alert-circle'); return; }
         EduData.update((state) => {
           const req = state.incomingRequests.find((r) => r.id === reqId);
           if (req) {
@@ -1698,8 +1699,9 @@
 
     // Decline request
     mainContent.querySelectorAll('[data-action="decline-req"]').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const reqId = btn.getAttribute('data-id');
+        try { await EduApi.updateMatchRequestStatus(reqId, 'declined'); await EduData.refreshFromBackend(); } catch (err) { showToast(err.message, 'danger', 'alert-circle'); return; }
         EduData.update((state) => {
           const req = state.incomingRequests.find((r) => r.id === reqId);
           if (req) req.status = 'declined';
@@ -1712,8 +1714,9 @@
 
     // Cancel request
     mainContent.querySelectorAll('[data-action="cancel-req"]').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const reqId = btn.getAttribute('data-id');
+        try { await EduApi.updateMatchRequestStatus(reqId, 'cancelled'); await EduData.refreshFromBackend(); } catch (err) { showToast(err.message, 'danger', 'alert-circle'); return; }
         EduData.update((state) => {
           const req = state.outgoingRequests.find((r) => r.id === reqId);
           if (req) req.status = 'cancelled';

@@ -210,7 +210,9 @@
       // 5. Partners (Discovery)
       const activeTrackId = (state.user.goals[0] && state.user.goals[0].track_id) || (state.tracks[0] && state.tracks[0].id) || 1;
       const rawPartners = await window.EduApi.getPartners(activeTrackId).catch(() => []);
-      state.candidates = (rawPartners || []).map((p) => {
+      const partnerResults = rawPartners && !Array.isArray(rawPartners) ? rawPartners.results || [] : rawPartners || [];
+      const maxScore = rawPartners && !Array.isArray(rawPartners) ? rawPartners.max_score : 0;
+      state.candidates = partnerResults.map((p) => {
         const pParts = (p.full_name || 'Student').split(' ');
         const initials = pParts.map((w) => w[0]).join('').toUpperCase().slice(0, 2);
         const availStr = (p.availability || [])
@@ -218,8 +220,7 @@
           .slice(0, 3)
           .join(', ') || 'Flexible evenings';
 
-        // Compatibility conversion: score up to 8 mapped to %
-        const compatPct = Math.min(99, Math.max(70, Math.round(70 + (p.score / 8) * 28)));
+        const compatPct = maxScore > 0 ? Math.round((p.score / maxScore) * 100) : 0;
 
         return {
           id: p.id || p.user_id,

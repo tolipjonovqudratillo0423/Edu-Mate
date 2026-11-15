@@ -21,6 +21,7 @@ SCORE_LEVEL_CLOSE = 3        # |current_level diff| <= 1
 SCORE_PER_SHARED_SLOT = 2    # per shared (weekday, slot), max 3 slots
 MAX_SHARED_SLOTS = 3
 SCORE_HOURS_CLOSE = 1        # |weekly_hours diff| <= 2
+MAX_SCORE = SCORE_LEVEL_CLOSE + MAX_SHARED_SLOTS * SCORE_PER_SHARED_SLOT + SCORE_HOURS_CLOSE
 TOP_N = 20
 
 

@@ -13,6 +13,7 @@ from apps.matching.serializers import (
 )
 from apps.matching.services import (
     PartnersService,
+    MAX_SCORE,
     MatchRequestService,
     MatesService,
 )
@@ -68,7 +69,7 @@ class PartnersView(APIView):
         serializer = self.serializer_class(partners, many=True)
         return ResponseMessage.success(
             message="Partners retrieved successfully.",
-            data=serializer.data,
+            data={"max_score": MAX_SCORE, "results": serializer.data},
         )
 
 

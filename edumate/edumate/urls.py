@@ -15,6 +15,8 @@ urlpatterns = [
     path('auth/', include('apps.authentication.urls')),
     path('users/', include('apps.users.urls')),
     path('goals/', include('apps.goals.urls')),
+    path('catalog/', include('apps.catalog.urls')),
+    path('tracks/', include('apps.catalog.urls')),
     path('availability/', AvailabilityListCreateView.as_view(), name='availability-root'),
     path('availability/<int:pk>/', AvailabilityDetailView.as_view(), name='availability-root-detail'),
     path('matching/', include('apps.matching.urls')),

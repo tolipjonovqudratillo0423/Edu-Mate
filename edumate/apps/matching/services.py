@@ -1,15 +1,22 @@
 from dataclasses import dataclass, field
-
-from rest_framework.exceptions import ValidationError
+from django.db import transaction
+from django.utils import timezone
+from rest_framework.exceptions import NotFound, ValidationError
 
 from apps.goals.models import Goal
-from apps.matching.repositories import PartnersRepository
+from apps.matching.models import Match, MatchRequest
+from apps.matching.repositories import (
+    PartnersRepository,
+    MatchRequestRepository,
+    MatchRepository,
+)
 from apps.users.models import User
 
 
 # ------------------------------------------------------------------ #
-# Scoring constants                                                   #
+# Partners Discovery Service                                         #
 # ------------------------------------------------------------------ #
+
 SCORE_LEVEL_CLOSE = 3        # |current_level diff| <= 1
 SCORE_PER_SHARED_SLOT = 2    # per shared (weekday, slot), max 3 slots
 MAX_SHARED_SLOTS = 3
@@ -65,14 +72,6 @@ class PartnersService:
 
     @staticmethod
     def find_partners(user: User, track_id: int) -> list[PartnerResult]:
-        """
-        Main entry point.
-        1. Validate track exists.
-        2. Find exclusion sets (active match, pending request).
-        3. Fetch candidates (no N+1).
-        4. Score + sort.
-        5. Return top 20.
-        """
         track = PartnersRepository.get_track_or_none(track_id)
         if track is None:
             raise ValidationError({"track": "Track not found or invalid."})
@@ -91,6 +90,130 @@ class PartnersService:
             score, shared = PartnersService._score(my_goal, my_slots, candidate_goal)
             results.append(PartnerResult(goal=candidate_goal, score=score, shared_slots=shared))
 
-        # Sort by score descending, top 20
         results.sort(key=lambda r: r.score, reverse=True)
         return results[:TOP_N]
+
+
+# ------------------------------------------------------------------ #
+# MatchRequest Service                                               #
+# ------------------------------------------------------------------ #
+
+class MatchRequestService:
+    """
+    Business rules and validation for MatchRequests.
+    Views call service only → service calls repository only.
+    Raises DRF exceptions (NotFound, ValidationError).
+    """
+
+    @staticmethod
+    def create_request(from_user: User, validated_data: dict) -> MatchRequest:
+        to_user = validated_data["to_user"]
+        track = validated_data["track"]
+
+        # Rule 1: Cannot send request to oneself
+        if to_user == from_user:
+            raise ValidationError({"to_user": "You cannot send a match request to yourself."})
+
+        # Rule 2: to_user's profile must not be hidden
+        if MatchRequestRepository.is_user_profile_hidden(to_user):
+            raise ValidationError({"to_user": "Target user profile is hidden or unavailable."})
+
+        # Rule 3: Either user having no goal in that track -> 400
+        if not MatchRequestRepository.user_has_goal_in_track(from_user, track.pk):
+            raise ValidationError({"track": "You do not have an active goal in this track."})
+        if not MatchRequestRepository.user_has_goal_in_track(to_user, track.pk):
+            raise ValidationError({"track": "Target user does not have an active goal in this track."})
+
+        # Rule 4: A request for (me, to_user, track) already exists -> 400
+        if MatchRequestRepository.exists_request(from_user, to_user, track.pk):
+            raise ValidationError({"non_field_errors": "A match request for this track already exists."})
+
+        # Rule 5: An active Match already exists between us in that track -> 400
+        if MatchRequestRepository.has_active_match(from_user, to_user, track.pk):
+            raise ValidationError({"non_field_errors": "An active match already exists between you and this user in this track."})
+
+        return MatchRequestRepository.create(from_user, validated_data)
+
+    @staticmethod
+    def list_requests(user: User, box: str = "received"):
+        if box == "sent":
+            return MatchRequestRepository.get_sent_requests(user)
+        # Default box is "received"
+        return MatchRequestRepository.get_received_requests(user)
+
+    @staticmethod
+    def update_request_status(request_id: int, user: User, new_status: str) -> MatchRequest:
+        match_request = MatchRequestRepository.get_by_id(request_id)
+        # Only a party (sender or recipient) may touch it; strangers get 404
+        if match_request is None or (match_request.from_user != user and match_request.to_user != user):
+            raise NotFound("Match request not found.")
+
+        # Transitions can only occur from PENDING status
+        if match_request.status != MatchRequest.Status.PENDING:
+            raise ValidationError({"status": "Only pending match requests can be updated."})
+
+        # Recipient transition rules
+        if user == match_request.to_user:
+            # One-time limit: The recipient can only respond (accept/decline) once.
+            # Once responded_at is populated, subsequent responses are rejected with 400
+            # to prevent state flip-flopping or duplicate match creation.
+            if match_request.responded_at is not None:
+                raise ValidationError({"status": "This match request has already been responded to."})
+
+            if new_status == MatchRequest.Status.ACCEPTED:
+                # Atomically accept request and create active Match
+                with transaction.atomic():
+                    MatchRepository.create_for(match_request.from_user, match_request.to_user, match_request.track)
+                    return MatchRequestRepository.save_request(
+                        match_request,
+                        status=MatchRequest.Status.ACCEPTED,
+                        responded_at=timezone.now(),
+                    )
+            elif new_status == MatchRequest.Status.DECLINED:
+                return MatchRequestRepository.save_request(
+                    match_request,
+                    status=MatchRequest.Status.DECLINED,
+                    responded_at=timezone.now(),
+                )
+            else:
+                raise ValidationError({"status": "Recipient can only accept or decline a pending request."})
+
+        # Sender transition rules
+        elif user == match_request.from_user:
+            if new_status == MatchRequest.Status.CANCELED:
+                return MatchRequestRepository.save_request(
+                    match_request,
+                    status=MatchRequest.Status.CANCELED,
+                )
+            else:
+                raise ValidationError({"status": "Sender can only cancel a pending request."})
+
+        raise ValidationError({"status": "Invalid status transition."})
+
+
+# ------------------------------------------------------------------ #
+# Mates Service                                                      #
+# ------------------------------------------------------------------ #
+
+class MatesService:
+    """
+    Business rules for active and ended matches (Mates).
+    Views call service only → service calls repository only.
+    Raises DRF exceptions.
+    """
+
+    @staticmethod
+    def list_mates(user: User, status: str = Match.Status.ACTIVE):
+        if status not in [Match.Status.ACTIVE, Match.Status.ENDED]:
+            status = Match.Status.ACTIVE
+        return MatchRepository.get_matches_for_user(user, status=status)
+
+    @staticmethod
+    def end_mate(match_id: int, user: User) -> Match:
+        match = MatchRepository.get_by_id(match_id)
+        # Either party may touch it; strangers get 404
+        if match is None or (match.user_a != user and match.user_b != user):
+            raise NotFound("Match not found.")
+
+        # Soft-end: set status to ended, keep row for sessions/reviews history
+        return MatchRepository.end_match(match)

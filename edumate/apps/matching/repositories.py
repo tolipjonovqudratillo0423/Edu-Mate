@@ -3,7 +3,7 @@ from django.db.models import Prefetch, Q
 from apps.catalog.models import Track
 from apps.goals.models import Goal, Availability
 from apps.matching.models import Match, MatchRequest
-from apps.users.models import User
+from apps.users.models import User, Profile
 
 
 class PartnersRepository:
@@ -101,3 +101,118 @@ class PartnersRepository:
             )
             .order_by("user_id")
         )
+
+
+class MatchRequestRepository:
+    """
+    Pure ORM layer for MatchRequest.
+    No business rules, no DRF imports.
+    """
+
+    @staticmethod
+    def get_by_id(request_id: int) -> MatchRequest | None:
+        try:
+            return (
+                MatchRequest.objects
+                .select_related("from_user__profile", "to_user__profile", "track")
+                .get(pk=request_id)
+            )
+        except MatchRequest.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_sent_requests(user: User):
+        return (
+            MatchRequest.objects
+            .filter(from_user=user)
+            .select_related("to_user__profile", "track")
+            .order_by("-created_at")
+        )
+
+    @staticmethod
+    def get_received_requests(user: User):
+        return (
+            MatchRequest.objects
+            .filter(to_user=user)
+            .select_related("from_user__profile", "track")
+            .order_by("-created_at")
+        )
+
+    @staticmethod
+    def exists_request(from_user: User, to_user: User, track_id: int) -> bool:
+        return MatchRequest.objects.filter(
+            from_user=from_user,
+            to_user=to_user,
+            track_id=track_id,
+        ).exists()
+
+    @staticmethod
+    def has_active_match(user_1: User, user_2: User, track_id: int) -> bool:
+        return Match.objects.filter(
+            track_id=track_id,
+            status=Match.Status.ACTIVE,
+        ).filter(
+            Q(user_a=user_1, user_b=user_2) | Q(user_a=user_2, user_b=user_1)
+        ).exists()
+
+    @staticmethod
+    def user_has_goal_in_track(user: User, track_id: int) -> bool:
+        return Goal.objects.filter(user=user, track_id=track_id).exists()
+
+    @staticmethod
+    def is_user_profile_hidden(user: User) -> bool:
+        """
+        Returns True if the user's profile is hidden or if no profile exists.
+        """
+        try:
+            return Profile.objects.filter(user=user, is_hidden=True).exists() or not Profile.objects.filter(user=user).exists()
+        except Exception:
+            return True
+
+    @staticmethod
+    def create(from_user: User, validated_data: dict) -> MatchRequest:
+        return MatchRequest.objects.create(from_user=from_user, **validated_data)
+
+    @staticmethod
+    def save_request(match_request: MatchRequest, **kwargs) -> MatchRequest:
+        for attr, value in kwargs.items():
+            setattr(match_request, attr, value)
+        match_request.save()
+        return match_request
+
+
+class MatchRepository:
+    """
+    Pure ORM layer for Match (Mates).
+    No business rules, no DRF imports.
+    """
+
+    @staticmethod
+    def get_by_id(match_id: int) -> Match | None:
+        try:
+            return (
+                Match.objects
+                .select_related("user_a__profile", "user_b__profile", "track")
+                .get(pk=match_id)
+            )
+        except Match.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_matches_for_user(user: User, status: str = Match.Status.ACTIVE):
+        return (
+            Match.objects
+            .filter(Q(user_a=user) | Q(user_b=user), status=status)
+            .select_related("user_a__profile", "user_b__profile", "track")
+            .order_by("-created_at")
+        )
+
+    @staticmethod
+    def create_for(first: User, second: User, track: Track) -> Match:
+        return Match.create_for(first, second, track)
+
+    @staticmethod
+    def end_match(match: Match) -> Match:
+        match.status = Match.Status.ENDED
+        match.save(update_fields=["status", "updated_at"])
+        return match

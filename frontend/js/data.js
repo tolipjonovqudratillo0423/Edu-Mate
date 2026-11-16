@@ -7,9 +7,9 @@
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'edumate_data_v1';
+  const EMPTY_DATA = { user: { goals: [], availability: {}, activePartnersCount: 0 }, tracks: [], candidates: [], incomingRequests: [], outgoingRequests: [], activePairs: [], sessions: [], notifications: [] };
 
-  // Fallback initial dataset (used offline or when signed out)
+  /* REMOVED demo defaults: backend refresh is the sole source for product data.
   const DEFAULT_DATA = {
     user: {
       id: 1,
@@ -82,6 +82,7 @@
     sessions: (window.EduMockData && window.EduMockData.sessions) || [],
     notifications: (window.EduMockData && window.EduMockData.notifications) || []
   };
+  */
 
   // Safe deep clone
   function clone(obj) {
@@ -118,7 +119,7 @@
   }
 
   // State holder
-  let state = loadState();
+  let state = clone(EMPTY_DATA);
 
   const LEVEL_MAP = {
     1: 'Beginner (1)',

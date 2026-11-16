@@ -1,5 +1,5 @@
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
 
 from apps.catalog.models import Track
@@ -11,7 +11,7 @@ class TrackListView(APIView):
     """
     GET /catalog/tracks/  → list available tracks for goals and partner matching
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         tracks = list(Track.objects.all().values("id", "slug", "name", "category"))

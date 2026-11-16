@@ -137,9 +137,9 @@ class PartnersAPITests(APITestCase):
         self.client.force_authenticate(self.user)
         res = self.client.get(f"{self.url}?track={self.track.pk}")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        partner_names = [p["full_name"] for p in res.data["data"]]
+        partner_names = [p["full_name"] for p in res.data["data"]["results"]]
         self.assertNotIn("Alice Smith", partner_names)
-        self.assertEqual(len(res.data["data"]), 0)
+        self.assertEqual(len(res.data["data"]["results"]), 0)
 
     def test_excludes_hidden_profiles(self):
         """Candidates whose profile is_hidden=True must be excluded."""
@@ -154,7 +154,7 @@ class PartnersAPITests(APITestCase):
         self.client.force_authenticate(self.user)
         res = self.client.get(f"{self.url}?track={self.track.pk}")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        names = [p["full_name"] for p in res.data["data"]]
+        names = [p["full_name"] for p in res.data["data"]["results"]]
         self.assertIn("Carol Visible", names)
         self.assertNotIn("Bob Hidden", names)
 
@@ -168,7 +168,7 @@ class PartnersAPITests(APITestCase):
         self.client.force_authenticate(self.user)
         res = self.client.get(f"{self.url}?track={self.track.pk}")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        names = [p["full_name"] for p in res.data["data"]]
+        names = [p["full_name"] for p in res.data["data"]["results"]]
         self.assertNotIn("Dave SAT", names)
 
     def test_excludes_pending_match_request_sent(self):
@@ -187,7 +187,7 @@ class PartnersAPITests(APITestCase):
         self.client.force_authenticate(self.user)
         res = self.client.get(f"{self.url}?track={self.track.pk}")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        names = [p["full_name"] for p in res.data["data"]]
+        names = [p["full_name"] for p in res.data["data"]["results"]]
         self.assertNotIn("Eve Partner", names)
 
     def test_excludes_pending_match_request_received(self):
@@ -206,7 +206,7 @@ class PartnersAPITests(APITestCase):
         self.client.force_authenticate(self.user)
         res = self.client.get(f"{self.url}?track={self.track.pk}")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        names = [p["full_name"] for p in res.data["data"]]
+        names = [p["full_name"] for p in res.data["data"]["results"]]
         self.assertNotIn("Frank Partner", names)
 
     def test_excludes_active_match(self):
@@ -220,7 +220,7 @@ class PartnersAPITests(APITestCase):
         self.client.force_authenticate(self.user)
         res = self.client.get(f"{self.url}?track={self.track.pk}")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        names = [p["full_name"] for p in res.data["data"]]
+        names = [p["full_name"] for p in res.data["data"]["results"]]
         self.assertNotIn("George Active", names)
 
     def test_ordering_by_matching_score(self):
@@ -249,7 +249,8 @@ class PartnersAPITests(APITestCase):
         res = self.client.get(f"{self.url}?track={self.track.pk}")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
-        data = res.data["data"]
+        data = res.data["data"]["results"]
+        self.assertIn("max_score", res.data["data"])
         self.assertEqual(len(data), 3)
 
         self.assertEqual(data[0]["full_name"], "High Match")

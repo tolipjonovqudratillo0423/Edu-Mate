@@ -110,6 +110,8 @@ class MatchRequestSerializer(serializers.ModelSerializer):
     from_user_name = serializers.CharField(source="from_user.profile.full_name", read_only=True)
     to_user_name = serializers.CharField(source="to_user.profile.full_name", read_only=True)
     track_name = serializers.CharField(source="track.name", read_only=True)
+    partner_user_id = serializers.SerializerMethodField()
+    telegram_username = serializers.SerializerMethodField()
 
     class Meta:
         model = MatchRequest
@@ -156,6 +158,8 @@ class MateSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "partner_id",
+            "partner_user_id",
+            "telegram_username",
             "full_name",
             "city",
             "contact",
@@ -175,6 +179,13 @@ class MateSerializer(serializers.ModelSerializer):
     def get_partner_id(self, obj: Match) -> int:
         other = self._get_other_user(obj)
         return other.id if other else 0
+
+    def get_partner_user_id(self, obj: Match) -> int:
+        return self.get_partner_id(obj)
+
+    def get_telegram_username(self, obj: Match) -> str:
+        other = self._get_other_user(obj)
+        return other.telegram_username if other else ""
 
     def get_contact(self, obj: Match) -> dict:
         other = self._get_other_user(obj)

@@ -2279,9 +2279,23 @@
           const email = mainContent.querySelector('#login-email').value.trim();
           const password = mainContent.querySelector('#login-password').value;
           await EduApi.login(email, password);
-          await EduData.refreshFromBackend();
+          const me = await EduApi.getAboutMe();
+          if (!me.is_verified) {
+            window.location.hash = '#/verify';
+            renderVerification();
+            return;
+          }
+          const [profile, goals, availability] = await Promise.all([
+            EduApi.getProfile(), EduApi.getGoals(), EduApi.getAvailability()
+          ]);
+          if (!profile) window.location.hash = '#/onboarding-profile';
+          else if (!goals.length) window.location.hash = '#/onboarding-goal';
+          else if (!availability.length) window.location.hash = '#/onboarding-availability';
+          else {
+            await EduData.refreshFromBackend();
+            window.location.hash = '#/dashboard';
+          }
           showToast('Signed in successfully!', 'success', 'check-circle');
-          window.location.hash = '#/dashboard';
         } catch (err) { showToast(err.message || 'Unable to sign in', 'danger', 'alert-circle'); }
       });
     }
@@ -2299,43 +2313,30 @@
 
           <div class="auth-form-wrap">
             <h1>Create your account</h1>
-            <p>Join the verified student study network</p>
+            <p>Start with your name and sign-in details. We’ll verify your email before onboarding.</p>
 
             <form class="auth-form" id="register-form">
               <div class="field">
-                <label for="reg-name">Full name</label>
-                <input type="text" id="reg-name" class="input" placeholder="e.g. Jasur Rakhimov" value="Madina Azimova" required>
+                <label for="reg-first">First name</label>
+                <input type="text" id="reg-first" class="input" autocomplete="given-name" required>
               </div>
-
-              <div class="field-row">
-                <div class="field">
-                  <label for="reg-age">Age</label>
-                  <input type="number" id="reg-age" class="input" value="17" min="14" max="25" required>
-                </div>
-                <div class="field">
-                  <label for="reg-city">City</label>
-                  <input type="text" id="reg-city" class="input" value="Tashkent" required>
-                </div>
-              </div>
-
               <div class="field">
-                <label for="reg-track">Primary study track</label>
-                <select id="reg-track" class="input">
-                  <option value="IELTS Speaking">IELTS Speaking</option>
-                  <option value="SAT Math">SAT Math</option>
-                  <option value="Python">Python & Web Dev</option>
-                  <option value="General English">General English</option>
-                </select>
+                <label for="reg-second">Second name <span>(optional)</span></label>
+                <input type="text" id="reg-second" class="input" autocomplete="additional-name">
+              </div>
+              <div class="field">
+                <label for="reg-last">Last name</label>
+                <input type="text" id="reg-last" class="input" autocomplete="family-name" required>
               </div>
 
               <div class="field">
                 <label for="reg-email">Email address</label>
-                <input type="email" id="reg-email" class="input" value="madina@example.com" required>
+                <input type="email" id="reg-email" class="input" autocomplete="email" required>
               </div>
 
               <div class="field">
                 <label for="reg-password">Password</label>
-                <input type="password" id="reg-password" class="input" value="password123" required>
+                <input type="password" id="reg-password" class="input" minlength="8" autocomplete="new-password" required>
               </div>
 
               <button type="submit" class="btn btn-primary btn-block">${icon('arrow-right')} Create Account</button>
@@ -2360,7 +2361,55 @@
     mainContent.innerHTML = html;
     hydrateIcons(mainContent);
 
-    mainContent.insertAdjacentHTML('afterbegin', inDevelopment('Registration is not available yet.'));
+    mainContent.querySelector('#register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = mainContent.querySelector('#reg-email').value.trim();
+      const password = mainContent.querySelector('#reg-password').value;
+      try {
+        await EduApi.register(email, mainContent.querySelector('#reg-first').value.trim(), mainContent.querySelector('#reg-last').value.trim(), mainContent.querySelector('#reg-second').value.trim(), password);
+        await EduApi.login(email, password);
+        await EduApi.sendVerificationCode();
+        window.location.hash = '#/verify';
+        renderVerification();
+        showToast('Verification code sent to your email.', 'success', 'mail');
+      } catch (err) { showToast(err.message || 'Could not create your account', 'danger', 'alert-circle'); }
+    });
+  }
+
+  function renderVerification() {
+    mainContent.innerHTML = `<div class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 1 OF 4 · EMAIL VERIFICATION</span><h1>Check your inbox</h1><p>Enter the code we sent to your email to continue setting up your profile.</p><form class="auth-form" id="verify-form"><div class="field"><label for="verify-code">Verification code</label><input class="input" id="verify-code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" required></div><button class="btn btn-primary btn-block" type="submit">Verify email ${icon('arrow-right')}</button></form><button class="btn btn-secondary btn-block" id="resend-code" style="margin-top:12px">Resend code</button></div></div></div>`;
+    hydrateIcons(mainContent);
+    mainContent.querySelector('#verify-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try { await EduApi.verifyCode(mainContent.querySelector('#verify-code').value.trim()); window.location.hash = '#/onboarding-profile'; renderProfileOnboarding(); }
+      catch (err) { showToast(err.message || 'Code could not be verified', 'danger', 'alert-circle'); }
+    });
+    mainContent.querySelector('#resend-code').addEventListener('click', async () => {
+      try { await EduApi.resendVerificationCode(); showToast('A new code has been sent.', 'success', 'mail'); }
+      catch (err) { showToast(err.message || 'Could not resend code', 'danger', 'alert-circle'); }
+    });
+  }
+
+  async function renderProfileOnboarding() {
+    const me = await EduApi.getAboutMe();
+    mainContent.innerHTML = `<section class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 2 OF 4 · YOUR PROFILE</span><h1>Tell us about yourself</h1><p>Your details help students find the right study partner.</p><form class="auth-form" id="onboard-profile"><div class="field"><label>City</label><input class="input" name="city" required></div><div class="field"><label>Age</label><input class="input" name="age" type="number" min="13" max="120" required></div><div class="field"><label>Study bio</label><textarea class="input" name="bio" maxlength="500" rows="3"></textarea></div><label><input type="checkbox" name="hidden"> Keep my profile hidden from partner discovery</label><button class="btn btn-primary btn-block" type="submit">Continue to study goal ${icon('arrow-right')}</button></form></div></div></section>`;
+    mainContent.querySelector('#onboard-profile').addEventListener('submit', async (e) => {
+      e.preventDefault(); const f = e.currentTarget; const age = Number(f.elements.age.value);
+      try { await EduApi.createProfile({full_name:[me.first_name,me.second_name,me.last_name].filter(Boolean).join(' '),city:f.elements.city.value.trim(),bio:f.elements.bio.value.trim(),age_group:age<18?'under_18':'adult',is_hidden:f.elements.hidden.checked}); window.location.hash='#/onboarding-goal'; renderGoalOnboarding(); }
+      catch(err){showToast(err.message||'Could not save profile','danger','alert-circle');}
+    });
+  }
+
+  async function renderGoalOnboarding() {
+    const tracks=await EduApi.getTracks();
+    mainContent.innerHTML=`<section class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 3 OF 4 · YOUR GOAL</span><h1>Choose what you’ll work on</h1><p>Set a clear target so we can match you with compatible students.</p><form class="auth-form" id="onboard-goal"><div class="field"><label>Study track</label><select class="input" name="track" required>${tracks.map(t=>`<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}</select></div><div class="field-row"><div class="field"><label>Current level (1–5)</label><input class="input" name="current" type="number" min="1" max="5" value="3" required></div><div class="field"><label>Target level (1–5)</label><input class="input" name="target" type="number" min="1" max="5" value="4" required></div></div><div class="field-row"><div class="field"><label>Target date</label><input class="input" name="deadline" type="date" required></div><div class="field"><label>Hours per week</label><input class="input" name="hours" type="number" min="1" max="40" value="6" required></div></div><button class="btn btn-primary btn-block" type="submit">Continue to availability ${icon('arrow-right')}</button></form></div></div></section>`;
+    mainContent.querySelector('#onboard-goal').addEventListener('submit',async(e)=>{e.preventDefault();const f=e.currentTarget;try{await EduApi.createGoal({track:Number(f.elements.track.value),current_level:Number(f.elements.current.value),target_level:Number(f.elements.target.value),deadline:f.elements.deadline.value,weekly_hours:Number(f.elements.hours.value)});window.location.hash='#/onboarding-availability';renderAvailabilityOnboarding();}catch(err){showToast(err.message||'Could not save goal','danger','alert-circle');}});
+  }
+
+  function renderAvailabilityOnboarding() {
+    const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']; const slots=['morning','afternoon','evening'];
+    mainContent.innerHTML=`<section class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 4 OF 4 · YOUR SCHEDULE</span><h1>When are you free?</h1><p>Choose at least one time that works for weekly study sessions.</p><form id="onboard-availability"><div class="availability-grid">${days.map((d,i)=>`<div class="field"><strong>${d}</strong>${slots.map(s=>`<label style="display:block;padding:5px"><input type="checkbox" name="slot" value="${i}:${s}"> ${s}</label>`).join('')}</div>`).join('')}</div><button class="btn btn-primary btn-block" type="submit">Finish onboarding ${icon('check')}</button></form></div></div></section>`;
+    mainContent.querySelector('#onboard-availability').addEventListener('submit',async(e)=>{e.preventDefault();const selected=[...e.currentTarget.querySelectorAll('[name="slot"]:checked')];if(!selected.length){showToast('Choose at least one available time.','danger','alert-circle');return;}try{for(const el of selected){const [weekday,slot]=el.value.split(':');await EduApi.createSlot(Number(weekday),slot);}await EduData.refreshFromBackend();window.location.hash='#/dashboard';showToast('Your profile is ready. Welcome to EduMate!','success','check-circle');}catch(err){showToast(err.message||'Could not save availability','danger','alert-circle');}});
   }
 
   /* ==========================================================================
@@ -2375,7 +2424,11 @@
     profile: { render: renderProfile, title: 'EduMate — Profile & goals', isAuth: false },
     landing: { render: renderLanding, title: 'EduMate — Better, together', isAuth: true },
     login: { render: renderLogin, title: 'EduMate — Sign in', isAuth: true },
-    register: { render: renderRegister, title: 'EduMate — Create account', isAuth: true }
+    register: { render: renderRegister, title: 'EduMate — Create account', isAuth: true },
+    verify: { render: renderVerification, title: 'Verify your email · EduMate', isAuth: true },
+    'onboarding-profile': { render: renderProfileOnboarding, title: 'Your profile · EduMate', isAuth: true },
+    'onboarding-goal': { render: renderGoalOnboarding, title: 'Your study goal · EduMate', isAuth: true },
+    'onboarding-availability': { render: renderAvailabilityOnboarding, title: 'Your availability · EduMate', isAuth: true }
   };
 
   function getCurrentRouteKey() {

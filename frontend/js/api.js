@@ -162,17 +162,37 @@
       return res.data;
     },
 
-    async register(email, firstName, lastName, password) {
-      return await request('/auth/register/', {
+    async register(email, firstName, lastName, secondName, password) {
+      const res = await request('/auth/register/', {
         method: 'POST',
         body: JSON.stringify({
           email,
           first_name: firstName,
+          second_name: secondName || '',
           last_name: lastName,
           password: password,
           password2: password
         })
       });
+      return res.data;
+    },
+
+    async sendVerificationCode() {
+      const res = await request('/auth/send-code/', { method: 'POST' });
+      return res.data;
+    },
+
+    async resendVerificationCode() {
+      const res = await request('/auth/resend-code/', { method: 'POST' });
+      return res.data;
+    },
+
+    async verifyCode(code) {
+      const res = await request('/auth/verify/', {
+        method: 'POST',
+        body: JSON.stringify({ code })
+      });
+      return res.data;
     },
 
     async logout() {

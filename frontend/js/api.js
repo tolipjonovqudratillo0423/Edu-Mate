@@ -120,11 +120,11 @@
 
     if (!response.ok) {
       const errors = errorMessages(data);
-      const errMsg = errors.length ? errors.join('\n') : (response.statusText || 'Request failed. Please try again.');
+      const errMsg = errors.length ? errors[0] : 'Something went wrong. Please try again.';
       const err = new Error(errMsg);
       err.status = response.status;
       err.data = data;
-      err.messages = errors;
+      err.messages = [errMsg];
       throw err;
     }
 

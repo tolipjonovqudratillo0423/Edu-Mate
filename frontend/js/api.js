@@ -178,6 +178,7 @@
     async logout() {
       const refresh = getRefreshToken();
       const access = getAccessToken();
+      clearTokens();
       let revoked = false;
       try {
         if (refresh && access) {
@@ -194,9 +195,7 @@
         }
       } catch (e) {
         console.warn('Backend logout warning:', e);
-      } finally {
-        clearTokens();
-      }
+      } finally {}
       return revoked;
     },
 

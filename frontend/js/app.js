@@ -925,7 +925,8 @@
     signOutButton.addEventListener('click', async () => {
       signOutButton.disabled = true;
       try {
-        await EduApi.logout();
+        // Revoke the refresh token in the background; local sign-out is immediate.
+        EduApi.logout();
       } finally {
         EduData.reset();
         closeAllPopovers();

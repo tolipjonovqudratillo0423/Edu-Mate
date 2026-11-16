@@ -176,19 +176,28 @@
     },
 
     async logout() {
+      const refresh = getRefreshToken();
+      const access = getAccessToken();
+      let revoked = false;
       try {
-        const refresh = getRefreshToken();
-        if (refresh) {
-          await request('/auth/logout/', {
+        if (refresh && access) {
+          const response = await fetch(`${API_BASE_URL}/auth/logout/`, {
             method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              Authorization: `Bearer ${access}`
+            },
             body: JSON.stringify({ refresh })
           });
+          revoked = response.ok;
         }
       } catch (e) {
         console.warn('Backend logout warning:', e);
       } finally {
         clearTokens();
       }
+      return revoked;
     },
 
     // User & Profile

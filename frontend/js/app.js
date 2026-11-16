@@ -920,6 +920,22 @@
     }
   });
 
+  const signOutButton = document.getElementById('sign-out-button');
+  if (signOutButton) {
+    signOutButton.addEventListener('click', async () => {
+      signOutButton.disabled = true;
+      try {
+        await EduApi.logout();
+      } finally {
+        EduData.reset();
+        closeAllPopovers();
+        closeSidebar();
+        window.location.hash = '#/login';
+        signOutButton.disabled = false;
+      }
+    });
+  }
+
   /* ==========================================================================
      5. ANIMATION UTILITIES (COUNT-UP & SMOOTH REVEAL)
      ========================================================================== */

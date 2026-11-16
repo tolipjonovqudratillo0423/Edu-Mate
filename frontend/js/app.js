@@ -2392,13 +2392,7 @@
     hydrateIcons(mainContent);
 
     const resetBtn = mainContent.querySelector('#btn-reset-demo');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        EduData.reset();
-        showToast('Demo data restored to initial state', 'info', 'check');
-        renderLanding();
-      });
-    }
+    if (resetBtn) resetBtn.remove();
   }
 
   function renderLogin() {
@@ -2602,6 +2596,10 @@
 
   function renderCurrentRoute() {
     const routeKey = getCurrentRouteKey();
+    if (!EduApi.isAuthenticated() && routeKey !== 'login' && routeKey !== 'register' && routeKey !== 'landing') {
+      window.location.hash = '#/login';
+      return;
+    }
     const route = ROUTES[routeKey] || ROUTES['dashboard'];
 
     document.title = route.title;
@@ -2640,6 +2638,11 @@
 
   // Hash change listener
   window.addEventListener('hashchange', renderCurrentRoute);
+
+  window.addEventListener('edudata:errors', (event) => {
+    const sections = (event.detail && event.detail.sections) || [];
+    if (sections.length) showToast(`Could not load: ${sections.join(', ')}`, 'danger', 'alert-circle');
+  });
 
   // Initialize on DOMContentLoaded
   document.addEventListener('DOMContentLoaded', () => {

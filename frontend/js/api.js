@@ -72,7 +72,9 @@
           isRefreshing = false;
           refreshQueue = [];
           clearTokens();
+          if (window.EduData && window.EduData.reset) window.EduData.reset();
           window.location.hash = '#/login';
+          if (window.showToast) window.showToast('Session expired. Please sign in again.', 'danger', 'alert-circle');
           throw new Error('Session expired. Please sign in again.');
         }
       }

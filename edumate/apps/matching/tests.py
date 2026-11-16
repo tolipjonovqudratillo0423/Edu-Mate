@@ -69,7 +69,7 @@ def make_profile(user: User, full_name: str = "Test User", city: str = "Tashkent
         user=user,
         full_name=full_name,
         city=city,
-        age_group=Profile.AgeGroup.ADULT,
+        age_group=Profile.AgeGroup.UNDER_18,
         is_hidden=is_hidden,
     )
 

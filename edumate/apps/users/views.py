@@ -42,9 +42,10 @@ class ProfileView(APIView):
     serializer_class = ProfileSerializer
     
     def get(self, request):
-       
-        profile = UserRepository.get_user_profile(request.user)
-        
+        profile = getattr(request.user, "profile", None)
+        if profile is None:
+            return ResponseMessage.success(message="Profile has not been created.", data=None)
+
         serialzier = self.serializer_class(profile)
         
         return ResponseMessage.success(

@@ -91,6 +91,7 @@ class PartnersRepository:
             .exclude(user_id__in=exclude_user_ids)
             .exclude(user__profile__is_hidden=True)
             .filter(user__profile__isnull=False)
+            .filter(user__profile__age_group=Profile.AgeGroup.UNDER_18)
             .select_related("user__profile", "track")
             .prefetch_related(
                 Prefetch(

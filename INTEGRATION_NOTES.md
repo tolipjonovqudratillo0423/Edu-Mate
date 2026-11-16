@@ -41,3 +41,11 @@ END OF NOTES
 ## REMAINING
 - Step A seed_demo command was added but not run or validated; confirm model field names before use.
 - Steps B–E remain: backend login flow and state loading; goal/availability persistence; partner/request/mate actions; in-development badges.
+
+## DECISIONS
+- An empty route redirects unauthenticated users to login and authenticated login/register routes to the dashboard.
+- Catalog requests use `/catalog/tracks/`; `/tracks/` remains a compatibility alias for existing clients.
+- Partner discovery is limited to under-18 users to match the product's stated teen-only safety policy.
+- Unsupported sessions, reviews, registration, and study statistics display In development and never use frontend mock data.
+- Profile email and Telegram remain read-only because the backend profile API does not support editing them.
+- Existing DEBUG values are parsed as explicit true/false tokens; unrecognized release labels mean DEBUG=false.

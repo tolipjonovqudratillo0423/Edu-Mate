@@ -225,32 +225,12 @@
     openModal(modalHtml, (modalEl) => {
       modalEl.querySelector('#btn-submit-connect').addEventListener('click', async () => {
         const note = modalEl.querySelector('#connect-message').value.trim();
-        const cand = (EduData.get().candidates || []).find((c) => c.id === candidateId);
+        const cand = (EduData.get().candidates || []).find((c) => String(c.id) === String(candidateId));
         if (!cand) return;
 
         try {
-          if (window.EduApi && window.EduApi.isAuthenticated()) {
-            await window.EduApi.sendMatchRequest(cand.user_id || cand.id, cand.track_id || 1, note);
-            await EduData.refresh();
-          } else {
-            EduData.update((state) => {
-              cand.status = 'pending';
-              state.outgoingRequests.unshift({
-                id: 'req-out-' + Date.now(),
-                candidateId: cand.id,
-                name: cand.name,
-                avatarClass: cand.avatarClass,
-                avatarInitials: cand.avatarInitials,
-                track: cand.track,
-                compatibility: cand.compatibility,
-                ageGroup: cand.ageGroup,
-                city: cand.city,
-                message: note || `Study partner request sent for ${cand.track}`,
-                timeAgo: 'Just now',
-                status: 'pending'
-              });
-            });
-          }
+          await window.EduApi.sendMatchRequest(cand.user_id || cand.id, cand.track_id, note);
+          await EduData.refreshFromBackend();
           closeModal();
           showToast(`Request sent to ${candidate.name}!`, 'success', 'send');
           updateBadgeCounts();
@@ -509,30 +489,19 @@
       modalEl.querySelector('#btn-submit-review').addEventListener('click', () => {
         const comment = modalEl.querySelector('#review-comment').value.trim();
 
-        EduData.update((state) => {
-          const sess = state.sessions.find((s) => s.id === session.id);
-          if (sess) {
-            sess.status = 'completed';
-            sess.canConfirmComplete = false;
-            sess.review = {
-              stars: selectedStars,
-              comment: comment || 'Productive and punctual session.',
-              reviewer: state.user.name
-            };
-          }
-          state.user.sessionsCompleted += 1;
-          state.user.totalHours += 1;
-          state.user.studyStreak += 1;
-        });
-
         closeModal();
-        showToast('Session confirmed! +1 hour added to your streak 🔥', 'success', 'award');
+        showToast('Sessions and reviews are not available yet.', 'info', 'calendar');
         renderCurrentRoute();
       });
     });
   }
 
   function openAddGoalModal() {
+    const availableTracks = EduData.get().tracks || [];
+    if (!availableTracks.length) {
+      showToast('No study tracks are available from the backend.', 'danger', 'alert-circle');
+      return;
+    }
     const modalHtml = `
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-goal-title">
         <div class="modal-head">
@@ -546,10 +515,7 @@
           <div class="field">
             <label for="goal-track">Study track</label>
             <select id="goal-track" class="input">
-              <option value="IELTS Speaking">IELTS Speaking</option>
-              <option value="SAT Math">SAT Math</option>
-              <option value="Python & Web Dev">Python & Web Dev</option>
-              <option value="General English">General English</option>
+              ${availableTracks.map((t) => `<option value="${escapeHtml(t.name)}">${escapeHtml(t.name)}</option>`).join('')}
             </select>
           </div>
 
@@ -598,22 +564,6 @@
         try {
           await EduApi.saveGoalFromForm({ trackName: track, current, target, deadline, weeklyHours: Number(modalEl.querySelector('#goal-hours').value) || 1 });
           await EduData.refreshFromBackend();
-          EduData.update((state) => {
-          state.user.goals.push({
-            id: 'goal-' + Date.now(),
-            title: title,
-            track: track,
-            currentLevel: current,
-            targetLevel: target,
-            deadline: deadline,
-            progress: 10,
-            hoursDone: 2,
-            hoursTotal: 25,
-            sessionsCount: 1,
-            isPrimary: false
-          });
-          });
-
           closeModal(); showToast(`Goal "${title}" created!`, 'success', 'check-circle'); renderCurrentRoute();
         } catch (err) { showToast(err.message || 'Could not save goal', 'danger', 'alert-circle'); }
       });
@@ -1007,25 +957,21 @@
     const user = data.user;
     const primaryGoal = user.goals.find((g) => g.isPrimary) || user.goals[0];
     const topCandidates = data.candidates.slice(0, 3);
-    const nextSession = data.sessions.find((s) => s.status === 'upcoming') || data.sessions[0];
 
     // Calculate ring offset for 68% progress: circumference = 2 * PI * 52 ≈ 327
     const circumference = 327;
-    const progressOffset = circumference - (circumference * (primaryGoal.progress / 100));
+    const progressOffset = circumference;
 
-    const html = `
+      const html = `
       <div class="page-enter">
         <div class="welcome-row">
           <div>
             <h1>Good morning, ${escapeHtml(user.name.split(' ')[0])} 👋</h1>
-            <p>Ready to make steady progress on your <strong>${escapeHtml(user.primaryTrack)}</strong> goal today?</p>
+            <p>${user.primaryTrack ? `Ready to make steady progress on your <strong>${escapeHtml(user.primaryTrack)}</strong> goal today?` : 'Add a study goal to find compatible partners.'}</p>
           </div>
-          <div class="date-chip">
-            ${icon('calendar')}
-            <span>Thursday, Oct 29 · <strong>${user.studyStreak}-day streak 🔥</strong></span>
-          </div>
+          <div class="date-chip">${inDevelopment('Study streaks are not available yet.')}</div>
         </div>
-        <span class="badge badge-info">In development · progress and streaks are demo data</span>
+        ${inDevelopment('Study progress and streak statistics are not available yet.')}
 
         <div class="dashboard-grid">
           <!-- Main column -->
@@ -1034,12 +980,10 @@
             <div class="card goal-hero">
               <div>
                 <div class="goal-kicker">${icon('target')} Primary Study Goal</div>
-                <h2>${escapeHtml(primaryGoal.title)}</h2>
-                <p>Target: <strong>${escapeHtml(primaryGoal.targetLevel)}</strong> by ${escapeHtml(primaryGoal.deadline)}. Maintaining ${user.hoursPerWeek} hours/week of focused study.</p>
+                <h2>${escapeHtml(primaryGoal ? primaryGoal.title : 'No study goal yet')}</h2>
+                <p>${primaryGoal ? `Target: <strong>${escapeHtml(primaryGoal.targetLevel || '—')}</strong> by ${escapeHtml(primaryGoal.deadline || '—')}. Maintaining ${escapeHtml(user.hoursPerWeek || '—')} hours/week of focused study.` : 'Add a study goal to find compatible partners.'}</p>
                 <div class="goal-meta">
-                  <span class="badge">${primaryGoal.sessionsCount} sessions completed</span>
-                  <span class="badge">${primaryGoal.hoursDone} of ${primaryGoal.hoursTotal} target hrs</span>
-                  <span class="badge">3x / week schedule</span>
+                  ${inDevelopment('Session counts and completed study hours are not available yet.')}
                 </div>
                 <div style="margin-top: 24px; display: flex; gap: 10px; flex-wrap: wrap;">
                   <a href="#/partners" class="btn btn-primary" style="background: #ffffff; color: #173f35; font-weight: 700;">${icon('users')} Find a study partner</a>
@@ -1053,8 +997,8 @@
                   <circle class="ring-value" cx="60" cy="60" r="52"></circle>
                 </svg>
                 <div class="ring-label">
-                  <strong data-countup="${primaryGoal.progress}">0</strong>%
-                  <span>COMPLETED</span>
+                  <strong>—</strong>
+                  <span>PROGRESS</span>
                 </div>
               </div>
             </div>
@@ -1067,10 +1011,10 @@
                   <div class="stat-icon apricot">${icon('flame')}</div>
                 </div>
                 <div class="stat-value">
-                  <strong data-countup="${user.studyStreak}">0</strong>
+                    <strong>—</strong>
                   <span>days</span>
                 </div>
-                <div class="stat-foot">Personal best: <b>14 days</b></div>
+                <div class="stat-foot">${inDevelopment('Study streaks are not available yet.')}</div>
               </div>
 
               <div class="card stat-card">
@@ -1079,10 +1023,10 @@
                   <div class="stat-icon">${icon('clock')}</div>
                 </div>
                 <div class="stat-value">
-                  <strong data-countup="${user.totalHours}">0</strong>
+                    <strong>—</strong>
                   <span>hours</span>
                 </div>
-                <div class="stat-foot"><b>+4.5 hrs</b> this week</div>
+                <div class="stat-foot">${inDevelopment('Study time statistics are not available yet.')}</div>
               </div>
 
               <div class="card stat-card">
@@ -1091,10 +1035,10 @@
                   <div class="stat-icon blue">${icon('award')}</div>
                 </div>
                 <div class="stat-value">
-                  <strong data-countup="${user.sessionsCompleted}">0</strong>
+                    <strong>${user.sessionsCompleted == null ? '—' : user.sessionsCompleted}</strong>
                   <span>sessions</span>
                 </div>
-                <div class="stat-foot"><b>100%</b> completion rate</div>
+                <div class="stat-foot">${user.sessionsCompleted == null ? inDevelopment('Session statistics are not available yet.') : ''}</div>
               </div>
             </div>
 
@@ -1103,20 +1047,20 @@
               <div class="section-head">
                 <div>
                   <h2>Suggested study partners for you</h2>
-                  <p>Students in your age group (16–17) with matching goals & schedules</p>
+                  <p>Students matched to your saved goal and schedule.</p>
                 </div>
-                <a href="#/partners" class="section-link">View all 8 candidates ${icon('arrow-right')}</a>
+                <a href="#/partners" class="section-link">View partners ${icon('arrow-right')}</a>
               </div>
 
               <div class="partner-list">
-                ${topCandidates
+                ${topCandidates.length ? topCandidates
                   .map(
                     (cand) => `
                   <div class="partner-row">
                     <span class="avatar ${cand.avatarClass}">${cand.avatarInitials}</span>
                     <div class="partner-info">
-                      <strong>${escapeHtml(cand.name)} <span class="badge badge-success" style="font-size: 9px; padding: 2px 6px;">${cand.compatibility}% match</span></strong>
-                      <p>${escapeHtml(cand.track)} · Target: ${escapeHtml(cand.target)} · ${escapeHtml(cand.city)}</p>
+                      <strong>${escapeHtml(cand.name || 'Student')} <span class="badge badge-success" style="font-size: 9px; padding: 2px 6px;">${cand.compatibility == null ? 'Score unavailable' : `${cand.compatibility}% match`}</span></strong>
+                      <p>${escapeHtml(cand.track || '')} · Target: ${escapeHtml(cand.target || '—')} · ${escapeHtml(cand.city || '')}</p>
                     </div>
                     ${
                       cand.status === 'pending'
@@ -1126,7 +1070,7 @@
                   </div>
                 `
                   )
-                  .join('')}
+                  .join('') : '<p>No partners are available for your saved goal yet.</p>'}
               </div>
             </div>
           </div>
@@ -1142,32 +1086,7 @@
                 </div>
               </div>
 
-              <div class="next-date">
-                <div class="calendar-tile">
-                  <span>${escapeHtml(nextSession.monthStr)}</span>
-                  <strong>${escapeHtml(nextSession.dayNum)}</strong>
-                </div>
-                <div>
-                  <h3>${escapeHtml(nextSession.topic)}</h3>
-                  <p>${escapeHtml(nextSession.time)}</p>
-                </div>
-              </div>
-
-              <div class="session-person">
-                <span class="avatar avatar-sm ${escapeHtml(nextSession.partnerAvatar)}">${escapeHtml(nextSession.partnerInitials)}</span>
-                <div>
-                  <strong>${escapeHtml(nextSession.partnerName)}</strong>
-                  <small>Partner · ${escapeHtml(nextSession.format)}</small>
-                </div>
-              </div>
-
-              <div style="display: flex; gap: 8px;">
-                ${
-                  nextSession.canConfirmComplete
-                    ? `<button class="btn btn-primary btn-block btn-sm" data-action="confirm-session" data-id="${nextSession.id}">${icon('check-circle')} Confirm completed</button>`
-                    : `<a href="${escapeHtml(nextSession.link)}" target="_blank" class="btn btn-secondary btn-block btn-sm">${icon('video')} Open meeting link</a>`
-                }
-              </div>
+              ${inDevelopment('Study sessions are not available yet.')}
             </div>
 
             <!-- Weekly Activity Graph -->
@@ -1177,23 +1096,10 @@
                   <h3>Weekly study momentum</h3>
                   <p>Study hours per day this week</p>
                 </div>
-                <strong style="color: var(--primary); font-size: 13px;">12.0 hrs</strong>
+                <strong style="color: var(--primary); font-size: 13px;">—</strong>
               </div>
 
-              <div class="week-bars">
-                ${user.weeklyActivity
-                  .map(
-                    (d) => `
-                  <div class="day-bar ${d.isToday ? 'today' : ''}" title="${d.day}: ${d.hours} hrs">
-                    <div class="day-bar-track">
-                      <div class="day-bar-fill" style="height: ${d.heightPct}%;"></div>
-                    </div>
-                    <small>${d.day}</small>
-                  </div>
-                `
-                  )
-                  .join('')}
-              </div>
+              ${inDevelopment('Weekly activity statistics are not available yet.')}
             </div>
 
             <!-- Safety & Trust Mini Banner -->
@@ -1251,23 +1157,23 @@
     const filtered = candidates.filter((c) => {
       if (partnerFilters.search) {
         const q = partnerFilters.search.toLowerCase();
-        const matchName = c.name.toLowerCase().includes(q);
-        const matchGoal = c.goalText.toLowerCase().includes(q);
-        const matchTrack = c.track.toLowerCase().includes(q);
-        const matchCity = c.city.toLowerCase().includes(q);
+        const matchName = (c.name || '').toLowerCase().includes(q);
+        const matchGoal = (c.goalText || '').toLowerCase().includes(q);
+        const matchTrack = (c.track || '').toLowerCase().includes(q);
+        const matchCity = (c.city || '').toLowerCase().includes(q);
         if (!matchName && !matchGoal && !matchTrack && !matchCity) return false;
       }
       if (partnerFilters.track !== 'all') {
-        if (!c.track.toLowerCase().includes(partnerFilters.track.toLowerCase())) return false;
+        if (!(c.track || '').toLowerCase().includes(partnerFilters.track.toLowerCase())) return false;
       }
       if (partnerFilters.level !== 'all') {
-        if (partnerFilters.level === 'advanced' && !c.target.includes('7.5') && !c.target.includes('8.0') && !c.target.includes('780') && !c.target.includes('750')) return false;
-        if (partnerFilters.level === 'intermediate' && !c.level.includes('B1') && !c.level.includes('B2') && !c.level.includes('620') && !c.level.includes('6.0')) return false;
+        if (partnerFilters.level === 'advanced' && !['7.5','8.0','780','750'].some((x) => (c.target || '').includes(x))) return false;
+        if (partnerFilters.level === 'intermediate' && !['B1','B2','620','6.0'].some((x) => (c.level || '').includes(x))) return false;
       }
       if (partnerFilters.availability !== 'all') {
-        if (partnerFilters.availability === 'evenings' && !c.availability.toLowerCase().includes('evening')) return false;
-        if (partnerFilters.availability === 'weekends' && !c.availability.toLowerCase().includes('sat') && !c.availability.toLowerCase().includes('sun')) return false;
-        if (partnerFilters.availability === 'weekdays' && !c.availability.toLowerCase().includes('mon') && !c.availability.toLowerCase().includes('tue') && !c.availability.toLowerCase().includes('wed') && !c.availability.toLowerCase().includes('thu') && !c.availability.toLowerCase().includes('fri') && !c.availability.toLowerCase().includes('weekdays')) return false;
+        if (partnerFilters.availability === 'evenings' && !(c.availability || '').toLowerCase().includes('evening')) return false;
+        if (partnerFilters.availability === 'weekends' && !(c.availability || '').toLowerCase().includes('sat') && !(c.availability || '').toLowerCase().includes('sun')) return false;
+        if (partnerFilters.availability === 'weekdays' && !['mon','tue','wed','thu','fri'].some((d) => (c.availability || '').toLowerCase().includes(d))) return false;
       }
       return true;
     });
@@ -1336,30 +1242,30 @@
               .map(
                 (c) => `
               <div class="card candidate-card">
-                <div class="candidate-top">
+          <div class="candidate-top">
                   <span class="avatar avatar-lg ${c.avatarClass}">${c.avatarInitials}</span>
-                  <div class="compatibility" style="--score: ${c.compatibility};" title="${c.compatibility}% compatibility based on schedule and track overlap">
-                    <span>${c.compatibility}%</span>
+                  <div class="compatibility" style="--score: ${c.compatibility || 0};" title="${c.compatibility == null ? 'Compatibility unavailable' : `${c.compatibility}% compatibility based on schedule and track overlap`}">
+                    <span>${c.compatibility == null ? '—' : `${c.compatibility}%`}</span>
                   </div>
                 </div>
 
                 <div class="candidate-name">
                   <h2>${escapeHtml(c.name)}</h2>
-                  <p>${escapeHtml(c.ageGroup)} · ${escapeHtml(c.city)} · <strong>${escapeHtml(c.track)}</strong></p>
+                  <p>${escapeHtml(c.ageGroup || 'Age group unavailable')} · ${escapeHtml(c.city || '')} · <strong>${escapeHtml(c.track || '')}</strong></p>
                 </div>
 
                 <div class="candidate-goal">
-                  <p>"${escapeHtml(c.goalText)}"</p>
+                  <p>"${escapeHtml(c.goalText || 'Goal details unavailable')}"</p>
                 </div>
 
                 <div class="tag-list">
-                  <span class="badge badge-success">Target: ${escapeHtml(c.target)}</span>
+                  <span class="badge badge-success">Target: ${escapeHtml(c.target || '—')}</span>
                   ${(c.tags || []).slice(0, 2).map((t) => `<span class="badge">${escapeHtml(t)}</span>`).join('')}
                 </div>
 
                 <div class="availability-line">
                   ${icon('clock')}
-                  <span>${escapeHtml(c.availability)}</span>
+                  <span>${escapeHtml(c.availability || 'Availability unavailable')}</span>
                 </div>
 
                 <div class="candidate-actions">
@@ -1478,10 +1384,10 @@
                 <span class="avatar avatar-lg ${req.avatarClass}">${req.avatarInitials}</span>
                 <div class="request-main">
                   <div class="request-title">
-                    <h2>${escapeHtml(req.name)}</h2>
-                    <span class="badge badge-success">${req.compatibility}% match</span>
+                    <h2>${escapeHtml(req.name || 'Student')}</h2>
+                    ${req.compatibility == null ? inDevelopment('Compatibility score is not available yet.') : `<span class="badge badge-success">${req.compatibility}% match</span>`}
                     <span class="badge">${escapeHtml(req.track)}</span>
-                    <span class="badge">${escapeHtml(req.ageGroup)} · ${escapeHtml(req.city)}</span>
+                    <span class="badge">${escapeHtml(req.ageGroup || '')} · ${escapeHtml(req.city || '')}</span>
                   </div>
                   <p>Sent ${escapeHtml(req.timeAgo)}</p>
                   <div class="request-note">
@@ -1520,10 +1426,10 @@
                 <span class="avatar avatar-lg ${req.avatarClass}">${req.avatarInitials}</span>
                 <div class="request-main">
                   <div class="request-title">
-                    <h2>${escapeHtml(req.name)}</h2>
+                    <h2>${escapeHtml(req.name || 'Student')}</h2>
                     <span class="badge badge-warning">${icon('clock')} Awaiting response</span>
                     <span class="badge">${escapeHtml(req.track)}</span>
-                    <span class="badge">${escapeHtml(req.ageGroup)} · ${escapeHtml(req.city)}</span>
+                    <span class="badge">${escapeHtml(req.ageGroup || '')} · ${escapeHtml(req.city || '')}</span>
                   </div>
                   <p>Sent ${escapeHtml(req.timeAgo)}</p>
                   <div class="request-note">
@@ -1565,39 +1471,16 @@
                   </div>
                 </div>
 
-                <div class="contact-reveal">
-                  ${icon('lock')}
-                  <div>
-                    <strong>Mutual match verified: Contact unlocked</strong>
-                    <span>Telegram: <a href="https://t.me/${pair.contact.telegram.replace('@', '')}" target="_blank" style="text-decoration: underline; font-weight: 700;">${escapeHtml(pair.contact.telegram)}</a> · Email: ${escapeHtml(pair.contact.email)}</span>
-                  </div>
-                </div>
+                ${pair.contact ? `<div class="contact-reveal">${icon('lock')}<div><strong>Contact unlocked</strong><span>${pair.contact.telegram ? `Telegram: ${escapeHtml(pair.contact.telegram)} ` : ''}${pair.contact.email ? `Email: ${escapeHtml(pair.contact.email)}` : ''}</span></div></div>` : inDevelopment('Contact details are not available yet.')}
 
-                <div class="active-stats">
-                  <div class="active-stat">
-                    <strong>${pair.sessionsTogether}</strong>
-                    <span>Sessions</span>
-                  </div>
-                  <div class="active-stat">
-                    <strong>${pair.hoursTogether}h</strong>
-                    <span>Studied</span>
-                  </div>
-                  <div class="active-stat">
-                    <strong>${pair.streakDays}d</strong>
-                    <span>Streak</span>
-                  </div>
-                </div>
+                ${inDevelopment('Session and study statistics are not available yet.')}
 
                 <div class="active-next">
                   ${icon('calendar')}
-                  <span>Next session: <strong>${escapeHtml(pair.nextSession)}</strong></span>
+                  <span>${inDevelopment('Session scheduling is not available yet.')}</span>
                 </div>
 
-                <div class="active-actions" style="margin-top: 16px;">
-                  <button class="btn btn-primary btn-sm" data-action="schedule-with" data-id="${pair.partnerId}">${icon('calendar-days')} Schedule session</button>
-                  <button class="btn btn-secondary btn-sm" data-action="copy-contact" data-contact="${escapeHtml(pair.contact.telegram)}">${icon('message-square')} Copy Telegram</button>
-                  <button class="icon-btn" data-action="report" data-name="${escapeHtml(pair.name)}" aria-label="Report or block ${escapeHtml(pair.name)}">${icon('flag')}</button>
-                </div>
+                ${pair.contact ? `<div class="active-actions" style="margin-top: 16px;">${pair.contact.telegram ? `<button class="btn btn-secondary btn-sm" data-action="copy-contact" data-contact="${escapeHtml(pair.contact.telegram)}">${icon('message-square')} Copy Telegram</button>` : ''}</div>` : ''}
               </div>
             `
               )
@@ -1615,7 +1498,7 @@
             <p>Manage incoming study partner requests, pending invitations, and your active learning pairs.</p>
           </div>
           <div class="page-actions">
-            <button class="btn btn-primary" id="btn-open-schedule">${icon('calendar-days')} Schedule session</button>
+            <span>${inDevelopment('Session scheduling is not available yet.')}</span>
           </div>
         </div>
 
@@ -1662,40 +1545,6 @@
       btn.addEventListener('click', async () => {
         const reqId = btn.getAttribute('data-id');
         try { await EduApi.updateMatchRequestStatus(reqId, 'accepted'); await EduData.refreshFromBackend(); } catch (err) { showToast(err.message, 'danger', 'alert-circle'); return; }
-        EduData.update((state) => {
-          const req = state.incomingRequests.find((r) => r.id === reqId);
-          if (req) {
-            req.status = 'accepted';
-            // Add to active pairs
-            state.activePairs.unshift({
-              id: 'pair-' + Date.now(),
-              partnerId: req.candidateId,
-              name: req.name,
-              avatarClass: req.avatarClass,
-              avatarInitials: req.avatarInitials,
-              track: req.track,
-              target: 'Band 7.5',
-              ageGroup: req.ageGroup,
-              city: req.city,
-              sessionsTogether: 1,
-              hoursTogether: 1.5,
-              streakDays: 1,
-              nextSession: 'Saturday, 17:00 (UZT)',
-              contact: {
-                telegram: '@' + req.name.toLowerCase().replace(/\s+/g, '_'),
-                email: req.name.toLowerCase().replace(/\s+/g, '.') + '@example.uz'
-              },
-              focusNotes: 'Goal: Practice structured IELTS topic cards together.'
-            });
-
-            // Update candidate status
-            const cand = state.candidates.find((c) => c.id === req.candidateId);
-            if (cand) cand.status = 'accepted';
-
-            state.user.activePartnersCount += 1;
-          }
-        });
-
         showToast(`You accepted the study request! Contact details unlocked.`, 'success', 'heart-handshake');
         updateBadgeCounts();
         renderMatches();
@@ -1721,7 +1570,7 @@
     mainContent.querySelectorAll('[data-action="cancel-req"]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const reqId = btn.getAttribute('data-id');
-        try { await EduApi.updateMatchRequestStatus(reqId, 'cancelled'); await EduData.refreshFromBackend(); } catch (err) { showToast(err.message, 'danger', 'alert-circle'); return; }
+        try { await EduApi.updateMatchRequestStatus(reqId, 'canceled'); await EduData.refreshFromBackend(); } catch (err) { showToast(err.message, 'danger', 'alert-circle'); return; }
         EduData.update((state) => {
           const req = state.outgoingRequests.find((r) => r.id === reqId);
           if (req) req.status = 'cancelled';
@@ -1803,39 +1652,20 @@
                 </div>
               </div>
 
-              <form id="profile-form">
-                <div class="form-grid">
-                  <div class="field">
-                    <label for="prof-name">Full name</label>
-                    <input type="text" id="prof-name" class="input" value="${escapeHtml(user.name)}" required>
-                  </div>
-                  <div class="field">
-                    <label for="prof-city">City / Region</label>
-                    <input type="text" id="prof-city" class="input" value="${escapeHtml(user.city)}" required>
-                  </div>
-                </div>
-
+              <p>${inDevelopment('Profile editing is not available yet.')}</p>
+              <div id="profile-form">
                 <div class="form-grid" style="margin-top: 16px;">
                   <div class="field">
-                    <label for="prof-email">Email (Private until matched)</label>
-                    <input type="email" id="prof-email" class="input" value="${escapeHtml(user.email)}" required>
+                    <label>Email</label>
+                    <p>${escapeHtml(user.email || '—')}</p>
                   </div>
                   <div class="field">
-                    <label for="prof-telegram">Telegram Handle (Revealed upon match)</label>
-                    <input type="text" id="prof-telegram" class="input" value="${escapeHtml(user.telegram)}" required>
+                    <label>Telegram Handle</label>
+                    <p>${escapeHtml(user.telegram || '—')}</p>
                   </div>
                 </div>
 
-                <div class="field" style="margin-top: 16px;">
-                  <label for="prof-bio">Study Bio & Topic Preferences</label>
-                  <textarea id="prof-bio" class="input" rows="3">${escapeHtml(user.bio)}</textarea>
-                  <small>Share what you want to practice so compatible partners can find you easily.</small>
-                </div>
-
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary">${icon('check')} Save profile changes</button>
-                </div>
-              </form>
+              </div>
             </div>
 
             <!-- Study Goals Section -->
@@ -1843,7 +1673,7 @@
               <div class="section-head">
                 <div>
                   <h2>Your Study Goals</h2>
-                  <p>Track progress and milestones for each subject</p>
+                  <p>Manage saved track, level, deadline, and weekly hours.</p>
                 </div>
                 <button class="btn btn-sm btn-secondary" id="btn-add-goal">${icon('plus')} Add goal</button>
               </div>
@@ -1861,17 +1691,8 @@
                       <span class="badge badge-info">Deadline: ${escapeHtml(g.deadline)}</span>
                     </div>
 
-                    <div class="goal-progress-meta">
-                      <span>Overall progress</span>
-                      <strong>${g.progress}%</strong>
-                    </div>
-                    <div class="progress-track">
-                      <span style="width: ${g.progress}%;"></span>
-                    </div>
-
                     <div class="goal-item-foot">
-                      <span>${g.sessionsCount} sessions completed · ${g.hoursDone} of ${g.hoursTotal} target hrs</span>
-                      <button type="button" data-action="log-study">Log study hours</button>
+                      ${inDevelopment('Progress and session totals are not available yet.')}
                     </div>
                   </div>
                 `
@@ -1925,14 +1746,15 @@
             <div class="card profile-summary">
               <span class="avatar avatar-xl ${user.avatarClass}" style="margin: 0 auto 14px;">${user.avatarInitials}</span>
               <h2>${escapeHtml(user.name)}</h2>
-              <p>${escapeHtml(user.primaryTrack)}</p>
+              <p>${escapeHtml(user.primaryTrack || 'No study goal yet')}</p>
 
               <div class="tag-list">
-                <span class="badge badge-success">${icon('shield-check')} Verified 16–17 age group</span>
-                <span class="badge">${escapeHtml(user.city)}, UZ</span>
+                <span class="badge badge-success">${icon('shield-check')} ${escapeHtml(user.ageGroup || 'Age group unavailable')}</span>
+                <span class="badge">${escapeHtml(user.city || 'City unavailable')}</span>
               </div>
 
-              <div class="profile-completeness">
+              ${inDevelopment('Profile completeness is not available yet.')}
+              <div style="display:none" class="profile-completeness">
                 <div>
                   <span>Profile completeness</span>
                   <strong>92%</strong>
@@ -1994,28 +1816,6 @@
     hydrateIcons(mainContent);
 
     // Form submit
-    const profileForm = mainContent.querySelector('#profile-form');
-    if (profileForm) {
-      profileForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = mainContent.querySelector('#prof-name').value.trim();
-        const city = mainContent.querySelector('#prof-city').value.trim();
-        const email = mainContent.querySelector('#prof-email').value.trim();
-        const telegram = mainContent.querySelector('#prof-telegram').value.trim();
-        const bio = mainContent.querySelector('#prof-bio').value.trim();
-
-        EduData.update((state) => {
-          state.user.name = name;
-          state.user.city = city;
-          state.user.email = email;
-          state.user.telegram = telegram;
-          state.user.bio = bio;
-        });
-
-        showToast('Profile information successfully saved!', 'success', 'check-circle');
-      });
-    }
-
     // Availability slots click handler
     const slotButtons = mainContent.querySelectorAll('.slot');
     const slotsCounter = mainContent.querySelector('#selected-slots-count');
@@ -2042,9 +1842,8 @@
       saveAvailBtn.addEventListener('click', async () => {
         try {
           await EduApi.saveAvailabilitySchedule(availability);
-        EduData.update((state) => {
-          state.user.availability = availability;
-        });
+          await EduData.refreshFromBackend();
+          renderProfile();
         showToast('Weekly availability schedule saved!', 'success', 'calendar');
         } catch (err) { showToast(err.message || 'Could not save availability', 'danger', 'alert-circle'); }
       });
@@ -2079,16 +1878,6 @@
       btn.addEventListener('click', openSafetyModal);
     });
 
-    mainContent.querySelectorAll('[data-action="log-study"]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        EduData.update((state) => {
-          state.user.totalHours += 1;
-          state.user.goals[0].hoursDone += 1;
-        });
-        showToast('Logged +1 study hour!', 'success', 'check-circle');
-        renderProfile();
-      });
-    });
   }
 
   /**
@@ -2108,11 +1897,12 @@
             <p>Schedule your next session, confirm completed meetings, and build your peer study record.</p>
           </div>
           <div class="page-actions">
-            <button class="btn btn-primary" id="btn-schedule-session">${icon('calendar-days')} Schedule session</button>
+            ${inDevelopment('Sessions and reviews are not available yet.')}
           </div>
         </div>
 
-        <div class="session-layout">
+              ${inDevelopment('Sessions and reviews are not available yet.')}
+              ${false ? `<div class="session-layout">
           <!-- Main List -->
           <div>
             <h2 style="font-size: 17px; margin-bottom: 14px;">Upcoming Sessions (${upcoming.length})</h2>
@@ -2234,7 +2024,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div>` : ''}
     `;
 
     mainContent.innerHTML = html;
@@ -2385,8 +2175,7 @@
         <footer class="landing-footer">
           <span>EduMate Prototype — Designed for students in Uzbekistan. 100% offline enabled.</span>
           <div>
-            <a href="#/dashboard" style="color: #ffffff; font-weight: 700; margin-right: 18px;">Open Demo App</a>
-            <button id="btn-reset-demo" style="color: #94afa2; text-decoration: underline; background: none; border: none; cursor: pointer;">Reset demo data</button>
+            <a href="#/login" style="color: #ffffff; font-weight: 700; margin-right: 18px;">Sign in</a>
           </div>
         </footer>
       </div>
@@ -2395,8 +2184,9 @@
     mainContent.innerHTML = html;
     hydrateIcons(mainContent);
 
-    const resetBtn = mainContent.querySelector('#btn-reset-demo');
-    if (resetBtn) resetBtn.remove();
+    mainContent.querySelectorAll('#btn-reset-demo, a[href="#/dashboard"]').forEach((el) => {
+      if (el.id === 'btn-reset-demo' || el.textContent.includes('Demo')) el.remove();
+    });
   }
 
   function renderLogin() {
@@ -2428,10 +2218,6 @@
 
               <button type="submit" class="btn btn-primary btn-block">${icon('arrow-right')} Sign in</button>
             </form>
-
-            <div class="auth-divider">DEMO ACCESS</div>
-
-            <button type="button" class="btn btn-secondary btn-block" id="btn-fast-demo">${icon('sparkles')} Instant Sign In as Madina (Student)</button>
 
             <p class="auth-switch">
               Don't have an account? <a href="#/register">Sign up for free</a>
@@ -2483,17 +2269,6 @@
       });
     }
 
-    const demoBtn = mainContent.querySelector('#btn-fast-demo');
-    if (demoBtn) {
-      demoBtn.addEventListener('click', async () => {
-        try {
-          await EduApi.login('demo0@edumate.demo', 'demo12345');
-          await EduData.refreshFromBackend();
-          showToast('Welcome to the demo!', 'success', 'sparkles');
-          window.location.hash = '#/dashboard';
-        } catch (err) { showToast(err.message || 'Unable to sign in', 'danger', 'alert-circle'); }
-      });
-    }
   }
 
   function renderRegister() {
@@ -2568,14 +2343,7 @@
     mainContent.innerHTML = html;
     hydrateIcons(mainContent);
 
-    const form = mainContent.querySelector('#register-form');
-    if (form) {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        showToast('Account created! Welcome to EduMate.', 'success', 'check-circle');
-        window.location.hash = '#/dashboard';
-      });
-    }
+    mainContent.insertAdjacentHTML('afterbegin', inDevelopment('Registration is not available yet.'));
   }
 
   /* ==========================================================================
@@ -2614,6 +2382,14 @@
       return;
     }
     const route = ROUTES[routeKey] || ROUTES['dashboard'];
+
+    if (routeKey === 'dashboard' && EduApi.isAuthenticated() && !window.__edumateInitialLoad) {
+      window.__edumateInitialLoad = true;
+      EduData.refreshFromBackend().then(() => {
+        if (getCurrentRouteKey() === 'dashboard') route.render();
+        updateBadgeCounts();
+      });
+    }
 
     document.title = route.title;
 

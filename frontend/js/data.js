@@ -117,7 +117,7 @@
       run('profile', async () => {
         const [aboutMe, profile] = await Promise.all([
           window.EduApi.getAboutMe().catch(() => null),
-          window.EduApi.getProfile().catch(() => null)
+          window.EduApi.getProfile().catch((err) => { if (err.status === 404) return null; throw err; })
         ]);
         if (!aboutMe && !profile) throw new Error('no user data');
         const u = state.user;
@@ -132,7 +132,7 @@
           u.city = profile.city || '';
           u.bio = profile.bio || '';
           u.ageGroup = ageGroupLabel(profile.age_group);
-          u.sessionsCompleted = profile.sessions_completed != null ? profile.sessions_completed : null;
+          u.sessionsCompleted = null;
           u.privacy.isHidden = !!profile.is_hidden;
         }
         u.avatarInitials = initialsOf(u.name);
@@ -202,9 +202,7 @@
             track: m.track_name || null,
             city: m.city || null,
             ageGroup: null,
-            contact: m.telegram_username
-              ? { telegram: '@' + m.telegram_username, email: null }
-              : null,
+            contact: m.contact && (m.contact.telegram || m.contact.email) ? m.contact : null,
             createdDate: m.created_date || null,
             // no backend source yet -> null -> "In development"
             sessionsTogether: null,
@@ -228,11 +226,10 @@
         return;
       }
       const raw = await window.EduApi.getPartners(goal.track_id);
-      const maxScore = raw && !Array.isArray(raw) && raw.max_score ? raw.max_score : null;
-      state.maxScore = maxScore;
+      state.maxScore = null;
       state.candidates = asList(raw).map((p) => {
         const g = p.goal || p;
-        const userId = p.user_id != null ? p.user_id : null; // needed as to_user; null -> cannot send
+        const userId = p.user_id != null ? p.user_id : (p.id != null ? p.id : null);
         const slots = (p.availability || []).map((s) => DAYS[s.weekday] + ' ' + s.slot);
         const cur = levelLabel(g.current_level);
         const tgt = levelLabel(g.target_level);
@@ -252,8 +249,7 @@
           weeklyHours: g.weekly_hours != null ? g.weekly_hours : null,
           deadline: g.deadline || null,
           score: typeof p.score === 'number' ? p.score : null,
-          compatibility:
-            maxScore && typeof p.score === 'number' ? Math.round((p.score / maxScore) * 100) : null,
+          compatibility: null,
           goalText: cur && tgt ? trackName + ': ' + cur + ' \u2192 ' + tgt : null,
           tags: [trackName, p.city].filter(Boolean),
           availability: slots.length ? slots.slice(0, 3).join(', ') : null,

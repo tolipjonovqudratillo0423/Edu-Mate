@@ -107,11 +107,29 @@ class MatchRequestSerializer(serializers.ModelSerializer):
     """
     Output serializer for MatchRequest.
     """
-    from_user_name = serializers.CharField(source="from_user.profile.full_name", read_only=True)
-    to_user_name = serializers.CharField(source="to_user.profile.full_name", read_only=True)
+    from_user_name = serializers.SerializerMethodField()
+    to_user_name = serializers.SerializerMethodField()
     track_name = serializers.CharField(source="track.name", read_only=True)
     partner_user_id = serializers.SerializerMethodField()
     telegram_username = serializers.SerializerMethodField()
+
+    def get_from_user_name(self, obj):
+        profile = getattr(obj.from_user, "profile", None)
+        return profile.full_name if profile else ""
+
+    def get_to_user_name(self, obj):
+        profile = getattr(obj.to_user, "profile", None)
+        return profile.full_name if profile else ""
+
+    def get_partner_user_id(self, obj):
+        request = self.context.get("request")
+        other = obj.to_user if request and request.user == obj.from_user else obj.from_user
+        return other.id
+
+    def get_telegram_username(self, obj):
+        request = self.context.get("request")
+        other = obj.to_user if request and request.user == obj.from_user else obj.from_user
+        return other.telegram_username or ""
 
     class Meta:
         model = MatchRequest
@@ -128,6 +146,8 @@ class MatchRequestSerializer(serializers.ModelSerializer):
             "responded_at",
             "created_at",
             "updated_at",
+            "partner_user_id",
+            "telegram_username",
         ]
         read_only_fields = fields
 

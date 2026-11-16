@@ -226,17 +226,8 @@
 
     // Catalog Tracks
     async getTracks() {
-      try {
-        const res = await request('/tracks/');
-        return res.data || [];
-      } catch (e) {
-        return [
-          { id: 1, slug: 'ielts-speaking', name: 'IELTS Speaking', category: 'exam' },
-          { id: 2, slug: 'ielts-writing', name: 'IELTS Writing', category: 'exam' },
-          { id: 3, slug: 'sat-math', name: 'SAT Math', category: 'exam' },
-          { id: 4, slug: 'python', name: 'Python', category: 'tech' }
-        ];
-      }
+      const res = await request('/catalog/tracks/');
+      return res.data || [];
     },
 
     // Goals

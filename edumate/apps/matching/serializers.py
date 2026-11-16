@@ -168,6 +168,8 @@ class MateSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     city = serializers.SerializerMethodField()
     partner_id = serializers.SerializerMethodField()
+    partner_user_id = serializers.SerializerMethodField()
+    telegram_username = serializers.SerializerMethodField()
     contact = serializers.SerializerMethodField()
     track_name = serializers.CharField(source="track.name", read_only=True)
     track = serializers.CharField(source="track.name", read_only=True)

@@ -12,6 +12,10 @@
 (function () {
   'use strict';
 
+  function inDevelopment(message = 'This information is not available yet.') {
+    return `<div class="in-development"><span class="badge badge-info">In development</span><span>${escapeHtml(message)}</span></div>`;
+  }
+
   /* ==========================================================================
      1. SVG ICON REGISTRY
      ========================================================================== */

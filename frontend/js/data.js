@@ -344,6 +344,9 @@
     async refresh() {
       return await refreshFromBackend();
     },
+    async refreshFromBackend() {
+      return await refreshFromBackend();
+    },
     reset() {
       state = clone(DEFAULT_DATA);
       saveState(state);

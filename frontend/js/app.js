@@ -2595,13 +2595,22 @@
 
   function getCurrentRouteKey() {
     const hash = window.location.hash.replace(/^#\/?/, '').trim();
-    return hash || 'dashboard';
+    if (hash) return hash;
+    if (!EduApi.isAuthenticated()) {
+      window.location.replace(window.location.pathname + window.location.search + '#/login');
+      return 'login';
+    }
+    return 'dashboard';
   }
 
   function renderCurrentRoute() {
     const routeKey = getCurrentRouteKey();
     if (!EduApi.isAuthenticated() && routeKey !== 'login' && routeKey !== 'register' && routeKey !== 'landing') {
       window.location.hash = '#/login';
+      return;
+    }
+    if (EduApi.isAuthenticated() && (routeKey === 'login' || routeKey === 'register')) {
+      window.location.hash = '#/dashboard';
       return;
     }
     const route = ROUTES[routeKey] || ROUTES['dashboard'];

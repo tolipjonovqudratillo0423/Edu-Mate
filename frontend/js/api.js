@@ -35,6 +35,22 @@
     return !!getAccessToken();
   }
 
+  function errorMessages(value, path = '') {
+    if (value == null || value === '') return [];
+    if (Array.isArray(value)) return value.flatMap((item) => errorMessages(item, path));
+    if (typeof value === 'object') {
+      return Object.entries(value).flatMap(([key, item]) => {
+        if (key === 'detail' || key === 'message' || key === 'error') return errorMessages(item, path);
+        const label = key === 'non_field_errors' ? '' : key.replace(/_/g, ' ');
+        return errorMessages(item, label);
+      });
+    }
+    const message = String(value).trim();
+    if (!message) return [];
+    if (!path) return [message];
+    return [`${path.charAt(0).toUpperCase()}${path.slice(1)}: ${message}`];
+  }
+
   async function request(endpoint, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
     const headers = {
@@ -103,19 +119,12 @@
     }
 
     if (!response.ok) {
-      let errMsg = 'Request failed';
-      if (data && data.message) {
-        errMsg = data.message;
-      } else if (data && typeof data === 'object') {
-        const firstKey = Object.keys(data)[0];
-        if (firstKey) {
-          const val = data[firstKey];
-          errMsg = Array.isArray(val) ? val[0] : String(val);
-        }
-      }
+      const errors = errorMessages(data);
+      const errMsg = errors.length ? errors.join('\n') : (response.statusText || 'Request failed. Please try again.');
       const err = new Error(errMsg);
       err.status = response.status;
       err.data = data;
+      err.messages = errors;
       throw err;
     }
 

@@ -16,6 +16,17 @@
     return `<div class="in-development"><span class="badge badge-info">In development</span><span>${escapeHtml(message)}</span></div>`;
   }
 
+  function showFormErrors(form, error) {
+    if (!form) return;
+    form.querySelectorAll('.form-error-summary').forEach((node) => node.remove());
+    const messages = error && error.messages && error.messages.length ? error.messages : [error && error.message || 'Something went wrong. Please try again.'];
+    const summary = document.createElement('div');
+    summary.className = 'form-error-summary';
+    summary.setAttribute('role', 'alert');
+    summary.innerHTML = `<span>${icon('alert-circle')}</span><ul>${messages.map((message) => `<li>${escapeHtml(message)}</li>`).join('')}</ul>`;
+    form.prepend(summary);
+  }
+
   /* ==========================================================================
      1. SVG ICON REGISTRY
      ========================================================================== */
@@ -94,7 +105,7 @@
   function showToast(message, type = 'success', iconName = 'check-circle') {
     if (!toastRegion) return;
     const toast = document.createElement('div');
-    toast.className = 'toast';
+    toast.className = `toast ${type === 'danger' ? 'toast-danger' : type === 'success' ? 'toast-success' : ''}`;
     toast.innerHTML = `
       <span>${icon(iconName)}</span>
       <p>${escapeHtml(message)}</p>
@@ -2372,7 +2383,7 @@
         window.location.hash = '#/verify';
         renderVerification();
         showToast('Verification code sent to your email.', 'success', 'mail');
-      } catch (err) { showToast(err.message || 'Could not create your account', 'danger', 'alert-circle'); }
+      } catch (err) { showFormErrors(mainContent.querySelector('#register-form'), err); showToast(err.message || 'Could not create your account', 'danger', 'alert-circle'); }
     });
   }
 
@@ -2382,7 +2393,7 @@
     mainContent.querySelector('#verify-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       try { await EduApi.verifyCode(mainContent.querySelector('#verify-code').value.trim()); window.location.hash = '#/onboarding-profile'; renderProfileOnboarding(); }
-      catch (err) { showToast(err.message || 'Code could not be verified', 'danger', 'alert-circle'); }
+      catch (err) { showFormErrors(mainContent.querySelector('#verify-form'), err); showToast(err.message || 'Code could not be verified', 'danger', 'alert-circle'); }
     });
     mainContent.querySelector('#resend-code').addEventListener('click', async () => {
       try { await EduApi.resendVerificationCode(); showToast('A new code has been sent.', 'success', 'mail'); }
@@ -2396,20 +2407,20 @@
     mainContent.querySelector('#onboard-profile').addEventListener('submit', async (e) => {
       e.preventDefault(); const f = e.currentTarget; const age = Number(f.elements.age.value);
       try { await EduApi.createProfile({full_name:[me.first_name,me.second_name,me.last_name].filter(Boolean).join(' '),city:f.elements.city.value.trim(),bio:f.elements.bio.value.trim(),age_group:age<18?'under_18':'adult',is_hidden:f.elements.hidden.checked}); window.location.hash='#/onboarding-goal'; renderGoalOnboarding(); }
-      catch(err){showToast(err.message||'Could not save profile','danger','alert-circle');}
+      catch(err){showFormErrors(f,err);showToast(err.message||'Could not save profile','danger','alert-circle');}
     });
   }
 
   async function renderGoalOnboarding() {
     const tracks=await EduApi.getTracks();
     mainContent.innerHTML=`<section class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 3 OF 4 · YOUR GOAL</span><h1>Choose what you’ll work on</h1><p>Set a clear target so we can match you with compatible students.</p><form class="auth-form" id="onboard-goal"><div class="field"><label>Study track</label><select class="input" name="track" required>${tracks.map(t=>`<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}</select></div><div class="field-row"><div class="field"><label>Current level (1–5)</label><input class="input" name="current" type="number" min="1" max="5" value="3" required></div><div class="field"><label>Target level (1–5)</label><input class="input" name="target" type="number" min="1" max="5" value="4" required></div></div><div class="field-row"><div class="field"><label>Target date</label><input class="input" name="deadline" type="date" required></div><div class="field"><label>Hours per week</label><input class="input" name="hours" type="number" min="1" max="40" value="6" required></div></div><button class="btn btn-primary btn-block" type="submit">Continue to availability ${icon('arrow-right')}</button></form></div></div></section>`;
-    mainContent.querySelector('#onboard-goal').addEventListener('submit',async(e)=>{e.preventDefault();const f=e.currentTarget;try{await EduApi.createGoal({track:Number(f.elements.track.value),current_level:Number(f.elements.current.value),target_level:Number(f.elements.target.value),deadline:f.elements.deadline.value,weekly_hours:Number(f.elements.hours.value)});window.location.hash='#/onboarding-availability';renderAvailabilityOnboarding();}catch(err){showToast(err.message||'Could not save goal','danger','alert-circle');}});
+    mainContent.querySelector('#onboard-goal').addEventListener('submit',async(e)=>{e.preventDefault();const f=e.currentTarget;try{await EduApi.createGoal({track:Number(f.elements.track.value),current_level:Number(f.elements.current.value),target_level:Number(f.elements.target.value),deadline:f.elements.deadline.value,weekly_hours:Number(f.elements.hours.value)});window.location.hash='#/onboarding-availability';renderAvailabilityOnboarding();}catch(err){showFormErrors(f,err);showToast(err.message||'Could not save goal','danger','alert-circle');}});
   }
 
   function renderAvailabilityOnboarding() {
     const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']; const slots=['morning','afternoon','evening'];
     mainContent.innerHTML=`<section class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 4 OF 4 · YOUR SCHEDULE</span><h1>When are you free?</h1><p>Choose at least one time that works for weekly study sessions.</p><form id="onboard-availability"><div class="availability-grid">${days.map((d,i)=>`<div class="field"><strong>${d}</strong>${slots.map(s=>`<label style="display:block;padding:5px"><input type="checkbox" name="slot" value="${i}:${s}"> ${s}</label>`).join('')}</div>`).join('')}</div><button class="btn btn-primary btn-block" type="submit">Finish onboarding ${icon('check')}</button></form></div></div></section>`;
-    mainContent.querySelector('#onboard-availability').addEventListener('submit',async(e)=>{e.preventDefault();const selected=[...e.currentTarget.querySelectorAll('[name="slot"]:checked')];if(!selected.length){showToast('Choose at least one available time.','danger','alert-circle');return;}try{for(const el of selected){const [weekday,slot]=el.value.split(':');await EduApi.createSlot(Number(weekday),slot);}await EduData.refreshFromBackend();window.location.hash='#/dashboard';showToast('Your profile is ready. Welcome to EduMate!','success','check-circle');}catch(err){showToast(err.message||'Could not save availability','danger','alert-circle');}});
+    mainContent.querySelector('#onboard-availability').addEventListener('submit',async(e)=>{e.preventDefault();const f=e.currentTarget;const selected=[...f.querySelectorAll('[name="slot"]:checked')];if(!selected.length){showToast('Choose at least one available time.','danger','alert-circle');return;}try{for(const el of selected){const [weekday,slot]=el.value.split(':');await EduApi.createSlot(Number(weekday),slot);}await EduData.refreshFromBackend();window.location.hash='#/dashboard';showToast('Your profile is ready. Welcome to EduMate!','success','check-circle');}catch(err){showFormErrors(f,err);showToast(err.message||'Could not save availability','danger','alert-circle');}});
   }
 
   /* ==========================================================================

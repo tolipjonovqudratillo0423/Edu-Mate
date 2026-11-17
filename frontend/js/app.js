@@ -940,6 +940,7 @@
         EduApi.logout();
       } finally {
         EduData.reset();
+        window.__edumateInitialLoad = false;
         closeAllPopovers();
         closeSidebar();
         window.location.hash = '#/login';
@@ -2296,16 +2297,13 @@
             renderVerification();
             return;
           }
-          const [profile, goals, availability] = await Promise.all([
-            EduApi.getProfile(), EduApi.getGoals(), EduApi.getAvailability()
-          ]);
-          if (!profile) window.location.hash = '#/onboarding-profile';
-          else if (!goals.length) window.location.hash = '#/onboarding-goal';
-          else if (!availability.length) window.location.hash = '#/onboarding-availability';
-          else {
-            await EduData.refreshFromBackend();
-            window.location.hash = '#/dashboard';
+          if (!me.is_onboarded) {
+            window.location.hash = '#/onboarding-profile';
+            return;
           }
+          await EduData.refreshFromBackend();
+          window.__edumateInitialLoad = true;
+          window.location.hash = '#/dashboard';
           showToast('Signed in successfully!', 'success', 'check-circle');
         } catch (err) { showToast(err.message || 'Unable to sign in', 'danger', 'alert-circle'); }
       });
@@ -2464,12 +2462,18 @@
     }
     const route = ROUTES[routeKey] || ROUTES['dashboard'];
 
-    if (routeKey === 'dashboard' && EduApi.isAuthenticated() && !window.__edumateInitialLoad) {
-      window.__edumateInitialLoad = true;
-      EduData.refreshFromBackend().then(() => {
-        if (getCurrentRouteKey() === 'dashboard') route.render();
-        updateBadgeCounts();
+    if (!route.isAuth && EduApi.isAuthenticated() && !window.__edumateInitialLoad) {
+      mainContent.innerHTML = '<div class="card card-pad" role="status">Loading your EduMate data…</div>';
+      if (!window.__edumateDataLoadPromise) {
+        window.__edumateDataLoadPromise = EduData.refreshFromBackend().finally(() => {
+          window.__edumateInitialLoad = true;
+          window.__edumateDataLoadPromise = null;
+        });
+      }
+      window.__edumateDataLoadPromise.then(() => {
+        if (getCurrentRouteKey() === routeKey) renderCurrentRoute();
       });
+      return;
     }
 
     document.title = route.title;

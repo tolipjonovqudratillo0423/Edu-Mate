@@ -24,6 +24,9 @@ class Command(BaseCommand):
             user, _ = User.objects.get_or_create(email=f"demo{index}@edumate.demo", defaults={"first_name": first, "last_name": last})
             user.first_name, user.last_name = first, last
             user.set_password("demo12345")
+            # Seeded demo accounts are ready to use immediately in the frontend.
+            user.is_verified = True
+            user.is_onboarded = True
             user.save()
             profile, _ = Profile.objects.get_or_create(user=user)
             profile.full_name = full_name

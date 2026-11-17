@@ -21,6 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
             "phone_number",
             "is_active",
             "is_verified",
+            "is_onboarded",
         ]
         
     

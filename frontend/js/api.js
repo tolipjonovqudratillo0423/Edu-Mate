@@ -10,8 +10,7 @@
   const ACCESS_KEY = 'edumate_access_token';
   const REFRESH_KEY = 'edumate_refresh_token';
 
-  let isRefreshing = false;
-  let refreshQueue = [];
+  let refreshPromise = null;
 
   function getAccessToken() {
     return localStorage.getItem(ACCESS_KEY);
@@ -77,34 +76,17 @@
 
     // Handle token refresh on 401
     if (response.status === 401 && getRefreshToken() && !options._isRetry) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const newTokens = await refreshAuthToken();
-          isRefreshing = false;
-          refreshQueue.forEach((cb) => cb(newTokens.access));
-          refreshQueue = [];
-        } catch (refreshErr) {
-          isRefreshing = false;
-          refreshQueue = [];
-          clearTokens();
-          if (window.EduData && window.EduData.reset) window.EduData.reset();
-          window.location.hash = '#/login';
-          if (window.showToast) window.showToast('Session expired. Please sign in again.', 'danger', 'alert-circle');
-          throw new Error('Session expired. Please sign in again.');
-        }
+      try {
+        if (!refreshPromise) refreshPromise = refreshAuthToken().finally(() => { refreshPromise = null; });
+        const newTokens = await refreshPromise;
+        return request(endpoint, { ...options, _isRetry: true, headers: { ...headers, Authorization: `Bearer ${newTokens.access}` } });
+      } catch (refreshErr) {
+        clearTokens();
+        if (window.EduData && window.EduData.reset) window.EduData.reset();
+        window.location.hash = '#/login';
+        if (window.showToast) window.showToast('Session expired. Please sign in again.', 'danger', 'alert-circle');
+        throw new Error('Session expired. Please sign in again.');
       }
-
-      return new Promise((resolve, reject) => {
-        refreshQueue.push((newAccess) => {
-          options._isRetry = true;
-          options.headers = {
-            ...headers,
-            Authorization: `Bearer ${newAccess}`
-          };
-          request(endpoint, options).then(resolve).catch(reject);
-        });
-      });
     }
 
     if (response.status === 204) {

@@ -18,6 +18,10 @@ class DemoApiFlowTests(APITestCase):
         self.assertEqual(login.status_code, status.HTTP_200_OK)
         tokens = login.data["data"]["tokens"]
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+        about_me = self.client.get("/users/about-me/")
+        self.assertEqual(about_me.status_code, status.HTTP_200_OK)
+        self.assertTrue(about_me.data["data"]["is_verified"])
+        self.assertTrue(about_me.data["data"]["is_onboarded"])
 
         track = Track.objects.get(slug="ielts-speaking")
         goal = self.client.post(

@@ -43,6 +43,8 @@ END OF NOTES
 - Steps B–E remain: backend login flow and state loading; goal/availability persistence; partner/request/mate actions; in-development badges.
 
 ## DECISIONS
+- `is_onboarded` means required profile creation is complete; goals and availability are editable after dashboard entry.
+- Seeded demo users are verified and onboarded, so their login opens the dashboard directly.
 - An empty route redirects unauthenticated users to login and authenticated login/register routes to the dashboard.
 - Catalog requests use `/catalog/tracks/`; `/tracks/` remains a compatibility alias for existing clients.
 - Partner discovery is limited to under-18 users to match the product's stated teen-only safety policy.

@@ -69,3 +69,5 @@ class AvailabilitySerializer(serializers.ModelSerializer):
         if value < 0 or value > 6:
             raise serializers.ValidationError("weekday must be between 0 (Monday) and 6 (Sunday).")
         return value
+    
+

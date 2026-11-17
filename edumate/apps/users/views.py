@@ -9,6 +9,7 @@ from apps.users.serializers import (
 )
 from apps.users.repositories import UserRepository
 from apps.common.utils import ResponseMessage
+from apps.users.permissions import IsVerified
 
 
 @extend_schema(
@@ -38,7 +39,7 @@ class MeView(APIView):
 )
 class ProfileView(APIView):
     
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsVerified]
     serializer_class = ProfileSerializer
     
     def get(self, request):

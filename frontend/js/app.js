@@ -254,6 +254,8 @@
   }
 
   function openReportModal(targetName, type = 'user') {
+    showToast('Reporting and blocking are not available yet.', 'info', 'info');
+    return;
     const modalHtml = `
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-report-title">
         <div class="modal-head">
@@ -301,110 +303,12 @@
   }
 
   function openScheduleModal(preselectedPartnerId = null) {
-    const data = EduData.get();
-    const pairs = data.activePairs || [];
-
-    if (pairs.length === 0) {
-      showToast('You do not have any active study pairs yet. Accept or send a match first!', 'info', 'info');
-      return;
-    }
-
-    const partnerOptions = pairs
-      .map(
-        (p) =>
-          `<option value="${p.partnerId}" ${p.partnerId === preselectedPartnerId ? 'selected' : ''}>${escapeHtml(p.name)} (${escapeHtml(p.track)})</option>`
-      )
-      .join('');
-
-    const modalHtml = `
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-sched-title">
-        <div class="modal-head">
-          <div>
-            <h2 id="modal-sched-title">Schedule a Study Session</h2>
-            <p>Set a date, time, and topic with your study partner</p>
-          </div>
-          <button class="icon-btn" data-close-modal aria-label="Close dialog">${icon('x')}</button>
-        </div>
-        <div class="modal-body">
-          <div class="field">
-            <label for="sched-partner">Study partner</label>
-            <select id="sched-partner" class="input">${partnerOptions}</select>
-          </div>
-
-          <div class="field-row">
-            <div class="field">
-              <label for="sched-date">Date</label>
-              <input type="text" id="sched-date" class="input" value="Friday, Nov 1" placeholder="e.g. Friday, Nov 1">
-            </div>
-            <div class="field">
-              <label for="sched-time">Time (UZT)</label>
-              <input type="text" id="sched-time" class="input" value="18:00 – 19:00" placeholder="e.g. 18:00 – 19:00">
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="sched-topic">Topic & Agenda</label>
-            <input type="text" id="sched-topic" class="input" value="IELTS Speaking Part 2: Practice Cue Cards 1–4" placeholder="What will you study?">
-          </div>
-
-          <div class="field">
-            <label for="sched-platform">Study Platform</label>
-            <select id="sched-platform" class="input">
-              <option value="Google Meet">Google Meet</option>
-              <option value="Telegram Audio Call">Telegram Audio Call</option>
-              <option value="Discord / Zoom">Discord / Zoom</option>
-            </select>
-          </div>
-        </div>
-        <div class="modal-foot">
-          <button class="btn btn-secondary" data-close-modal>Cancel</button>
-          <button class="btn btn-primary" id="btn-save-session">${icon('calendar-days')} Confirm & Schedule</button>
-        </div>
-      </div>
-    `;
-
-    openModal(modalHtml, (modalEl) => {
-      modalEl.querySelector('#btn-save-session').addEventListener('click', () => {
-        const partnerSelect = modalEl.querySelector('#sched-partner');
-        const selectedId = partnerSelect.value;
-        const partner = pairs.find((p) => p.partnerId === selectedId) || pairs[0];
-        const date = modalEl.querySelector('#sched-date').value.trim() || 'Upcoming';
-        const time = modalEl.querySelector('#sched-time').value.trim() || '18:00 – 19:00 (UZT)';
-        const topic = modalEl.querySelector('#sched-topic').value.trim() || 'Study Session';
-        const platform = modalEl.querySelector('#sched-platform').value;
-
-        EduData.update((state) => {
-          state.sessions.unshift({
-            id: 'sess-' + Date.now(),
-            partnerId: partner.partnerId,
-            partnerName: partner.name,
-            partnerAvatar: partner.avatarClass,
-            partnerInitials: partner.avatarInitials,
-            topic: topic,
-            date: date,
-            time: time,
-            dayNum: '01',
-            monthStr: 'NOV',
-            format: platform,
-            link: 'https://meet.google.com/edu-mate-talk',
-            status: 'upcoming',
-            canConfirmComplete: true,
-            track: partner.track,
-            partnerContact: partner.contact.telegram
-          });
-        });
-
-        closeModal();
-        showToast(`Session with ${partner.name} scheduled!`, 'success', 'calendar');
-        renderCurrentRoute();
-      });
-    });
+    showToast('Session scheduling is not available yet.', 'info', 'calendar');
   }
 
   function openConfirmSessionModal(sessionId) {
-    const data = EduData.get();
-    const session = data.sessions.find((s) => s.id === sessionId);
-    if (!session) return;
+    showToast('Session confirmation and reviews are not available yet.', 'info', 'info');
+    return;
 
     const modalHtml = `
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-title">
@@ -531,25 +435,25 @@
           </div>
 
           <div class="field">
-            <label for="goal-title">Goal title</label>
-            <input type="text" id="goal-title" class="input" value="IELTS Speaking 7.5 Band" placeholder="e.g. IELTS 7.5 Band">
+            <label>Goal title</label>
+            <p>The title is provided by the selected backend track.</p>
           </div>
 
           <div class="field-row">
             <div class="field">
               <label for="goal-current">Current level</label>
-              <input type="text" id="goal-current" class="input" value="Band 6.0" placeholder="e.g. Band 6.0">
+              <input type="number" id="goal-current" class="input" min="1" max="5" value="3" required>
             </div>
             <div class="field">
               <label for="goal-target">Target level</label>
-              <input type="text" id="goal-target" class="input" value="Band 7.5" placeholder="e.g. Band 7.5">
+              <input type="number" id="goal-target" class="input" min="1" max="5" value="4" required>
             </div>
           </div>
 
           <div class="field-row">
             <div class="field">
               <label for="goal-deadline">Target deadline</label>
-              <input type="text" id="goal-deadline" class="input" value="Dec 2026" placeholder="e.g. Dec 2026">
+              <input type="date" id="goal-deadline" class="input" required>
             </div>
             <div class="field">
               <label for="goal-hours">Target hours / week</label>
@@ -566,17 +470,20 @@
 
     openModal(modalHtml, (modalEl) => {
       modalEl.querySelector('#btn-save-goal').addEventListener('click', async () => {
-        const title = modalEl.querySelector('#goal-title').value.trim() || 'New Goal';
-        const track = modalEl.querySelector('#goal-track').value;
-        const current = modalEl.querySelector('#goal-current').value.trim() || 'Beginner';
-        const target = modalEl.querySelector('#goal-target').value.trim() || 'Advanced';
-        const deadline = modalEl.querySelector('#goal-deadline').value.trim() || '2026';
+        const button = modalEl.querySelector('#btn-save-goal');
+        if (button.disabled) return;
+        const trackName = modalEl.querySelector('#goal-track').value;
+        const track = availableTracks.find((item) => item.name === trackName);
+        const currentLevel = Number(modalEl.querySelector('#goal-current').value);
+        const targetLevel = Number(modalEl.querySelector('#goal-target').value);
+        const deadline = modalEl.querySelector('#goal-deadline').value;
+        button.disabled = true;
 
         try {
-          await EduApi.saveGoalFromForm({ trackName: track, current, target, deadline, weeklyHours: Number(modalEl.querySelector('#goal-hours').value) || 1 });
+          await EduApi.createGoal({ track: track.id, current_level: currentLevel, target_level: targetLevel, deadline, weekly_hours: Number(modalEl.querySelector('#goal-hours').value) });
           await EduData.refreshFromBackend();
-          closeModal(); showToast(`Goal "${title}" created!`, 'success', 'check-circle'); renderCurrentRoute();
-        } catch (err) { showToast(err.message || 'Could not save goal', 'danger', 'alert-circle'); }
+          closeModal(); showToast('Study goal created.', 'success', 'check-circle'); renderCurrentRoute();
+        } catch (err) { button.disabled = false; showFormErrors(modalEl.querySelector('.modal-body'), err); showToast(err.message || 'Could not save goal', 'danger', 'alert-circle'); }
       });
     });
   }
@@ -741,64 +648,32 @@
     const count = (data.incomingRequests || []).filter((r) => r.status === 'pending').length;
     if (requestCountEl) {
       requestCountEl.textContent = count;
-      requestCountEl.style.display = count > 0 ? 'grid' : 'none';
+      requestCountEl.hidden = count === 0;
     }
+    updateShellProfile();
+  }
+
+  function updateShellProfile() {
+    const user = EduData.get().user;
+    const name = user.name || 'Your profile';
+    const detail = [user.primaryTrack, user.ageGroup].filter(Boolean).join(' · ');
+    document.querySelectorAll('[data-shell-name]').forEach((el) => { el.textContent = name; });
+    document.querySelectorAll('[data-shell-detail]').forEach((el) => { el.textContent = detail || user.email || ''; });
+    document.querySelectorAll('[data-shell-avatar]').forEach((el) => {
+      el.textContent = user.avatarInitials || '';
+      el.className = `avatar avatar-sm ${user.avatarClass || ''}`;
+    });
   }
 
   // Notifications content
   function renderNotificationPopover() {
-    const data = EduData.get();
-    const list = data.notifications || [];
-
-    let itemsHtml = '';
-    if (list.length === 0) {
-      itemsHtml = '<p style="padding: 20px; text-align: center; color: var(--muted); font-size: 12px;">No new notifications</p>';
-    } else {
-      itemsHtml = list
-        .map(
-          (n) => `
-        <div class="notification-item ${n.unread ? 'unread' : ''}" data-route="${n.route || 'dashboard'}">
-          <div class="notice-icon">${icon(n.route === 'matches' ? 'heart-handshake' : n.route === 'sessions' ? 'calendar-days' : 'sparkles')}</div>
-          <div>
-            <p><strong>${escapeHtml(n.title)}</strong><br>${escapeHtml(n.text)}</p>
-            <time>${escapeHtml(n.time)}</time>
-          </div>
-        </div>
-      `
-        )
-        .join('');
-    }
-
     notificationPopover.innerHTML = `
       <div class="notification-head">
         <h3>Notifications</h3>
-        <button id="btn-mark-read" style="background:none; border:none; cursor:pointer;">Mark all read</button>
       </div>
-      <div class="notification-list">${itemsHtml}</div>
+      <div class="notification-list">${inDevelopment('Notifications are not available yet.')}</div>
     `;
-
     hydrateIcons(notificationPopover);
-
-    const markReadBtn = notificationPopover.querySelector('#btn-mark-read');
-    if (markReadBtn) {
-      markReadBtn.addEventListener('click', () => {
-        EduData.update((state) => {
-          (state.notifications || []).forEach((n) => (n.unread = false));
-        });
-        const dot = document.querySelector('.notification-dot');
-        if (dot) dot.style.display = 'none';
-        renderNotificationPopover();
-        showToast('All notifications marked as read', 'info', 'check');
-      });
-    }
-
-    notificationPopover.querySelectorAll('.notification-item').forEach((item) => {
-      item.addEventListener('click', () => {
-        const route = item.getAttribute('data-route');
-        closeAllPopovers();
-        window.location.hash = '#/' + route;
-      });
-    });
   }
 
   // Global search autocomplete
@@ -1686,11 +1561,11 @@
                 <div class="form-grid" style="margin-top: 16px;">
                   <div class="field">
                     <label>Email</label>
-                    <p>${escapeHtml(user.email || '—')}</p>
+                  <p>${escapeHtml(user.email || 'Unavailable')}</p>
                   </div>
                   <div class="field">
                     <label>Telegram Handle</label>
-                    <p>${escapeHtml(user.telegram || '—')}</p>
+                  <p>${escapeHtml(user.telegram || 'Unavailable')}</p>
                   </div>
                 </div>
 
@@ -1708,16 +1583,16 @@
               </div>
 
               <div class="goals-list">
-                ${goals
+                ${goals.length ? goals
                   .map(
                     (g) => `
                   <div class="goal-item">
                     <div class="goal-item-head">
                       <div>
-                        <h3>${escapeHtml(g.title)} ${g.isPrimary ? '<span class="badge badge-success">Primary</span>' : ''}</h3>
-                        <p>${escapeHtml(g.track)} · Target: <strong>${escapeHtml(g.targetLevel)}</strong> (Starting: ${escapeHtml(g.currentLevel)})</p>
+                      <h3>${escapeHtml(g.title || g.track || 'Study goal')} ${g.isPrimary ? '<span class="badge badge-success">Primary</span>' : ''}</h3>
+                        <p>${escapeHtml(g.track || 'Track unavailable')} · Target: <strong>${escapeHtml(g.targetLevel || 'Unavailable')}</strong> (Starting: ${escapeHtml(g.currentLevel || 'Unavailable')})</p>
                       </div>
-                      <span class="badge badge-info">Deadline: ${escapeHtml(g.deadline)}</span>
+                      <span class="badge badge-info">Deadline: ${escapeHtml(g.deadline || 'Unavailable')}</span>
                     </div>
 
                     <div class="goal-item-foot">
@@ -1726,7 +1601,7 @@
                   </div>
                 `
                   )
-                  .join('')}
+                  .join('') : `<div class="empty-state"><h3>No study goals yet</h3><p>Create a goal to discover partners working on the same track.</p></div>`}
               </div>
             </div>
 
@@ -1737,7 +1612,7 @@
                   <h2>Weekly Availability Schedule</h2>
                   <p>Click time slots when you are free for partner study sessions (Tashkent Time UTC+5)</p>
                 </div>
-                <strong style="color: var(--primary); font-size: 13px;" id="selected-slots-count">${totalSelectedSlots} slots selected (~${totalSelectedSlots * 3} hrs)</strong>
+                <strong style="color: var(--primary); font-size: 13px;" id="selected-slots-count">${totalSelectedSlots} available slots</strong>
               </div>
 
               <div class="availability-picker">
@@ -1774,11 +1649,11 @@
             <!-- Profile Summary Card -->
             <div class="card profile-summary">
               <span class="avatar avatar-xl ${user.avatarClass}" style="margin: 0 auto 14px;">${user.avatarInitials}</span>
-              <h2>${escapeHtml(user.name)}</h2>
+          <h2>${escapeHtml(user.name || 'Name unavailable')}</h2>
               <p>${escapeHtml(user.primaryTrack || 'No study goal yet')}</p>
 
               <div class="tag-list">
-                <span class="badge badge-success">${icon('shield-check')} ${escapeHtml(user.ageGroup || 'Age group unavailable')}</span>
+              <span class="badge">${icon('shield-check')} ${escapeHtml(user.ageGroup || 'Age group unavailable')}</span>
                 <span class="badge">${escapeHtml(user.city || 'City unavailable')}</span>
               </div>
 
@@ -1807,28 +1682,28 @@
                 <div class="privacy-row">
                   ${icon('shield-check')}
                   <div>
-                    <strong>Age-Group Matching</strong>
-                    <small>Matched only with peers aged 16–17</small>
+                  <strong>Age-Group Matching</strong>
+                  <small>${escapeHtml(user.ageGroup || 'Age group unavailable')} · Matching policy details ${inDevelopment('not available yet.')}</small>
                   </div>
-                  <button type="button" class="toggle" role="switch" aria-checked="true" disabled></button>
+                  <span class="badge">${inDevelopment('Age matching policy is not available yet.')}</span>
                 </div>
 
                 <div class="privacy-row">
                   ${icon('lock')}
                   <div>
-                    <strong>Contact Protection</strong>
-                    <small>Hide Telegram until match accepted</small>
+                  <strong>Profile visibility</strong>
+                  <small>${user.privacy.isHidden ? 'Hidden from partner discovery' : 'Visible to partner discovery'}</small>
                   </div>
-                  <button type="button" class="toggle" role="switch" id="toggle-privacy-contact" aria-checked="true"></button>
+                  <span class="badge badge-info">${user.privacy.isHidden ? 'Hidden' : 'Visible'}</span>
                 </div>
 
                 <div class="privacy-row">
                   ${icon('award')}
                   <div>
-                    <strong>Public Study Streak</strong>
-                    <small>Show your ${user.studyStreak}-day streak on profile</small>
+                  <strong>Study streak visibility</strong>
+                  <small>${inDevelopment('Study streak settings are not available yet.')}</small>
                   </div>
-                  <button type="button" class="toggle" role="switch" id="toggle-privacy-streak" aria-checked="true"></button>
+                  <span class="badge badge-info">${inDevelopment('Unavailable.')}</span>
                 </div>
               </div>
 
@@ -1861,7 +1736,7 @@
           if (b.classList.contains('selected')) total++;
         });
         if (slotsCounter) {
-          slotsCounter.textContent = `${total} slots selected (~${total * 3} hrs)`;
+          slotsCounter.textContent = `${total} available slots`;
         }
       });
     });
@@ -1884,25 +1759,6 @@
     if (addGoalBtn) addGoalBtn.addEventListener('click', openAddGoalModal);
     if (addGoalTopBtn) addGoalTopBtn.addEventListener('click', openAddGoalModal);
 
-    // Toggles
-    const contactToggle = mainContent.querySelector('#toggle-privacy-contact');
-    if (contactToggle) {
-      contactToggle.addEventListener('click', () => {
-        const state = contactToggle.getAttribute('aria-checked') === 'true';
-        contactToggle.setAttribute('aria-checked', !state);
-        showToast(`Contact privacy ${!state ? 'enabled' : 'disabled'}.`, 'info', 'lock');
-      });
-    }
-
-    const streakToggle = mainContent.querySelector('#toggle-privacy-streak');
-    if (streakToggle) {
-      streakToggle.addEventListener('click', () => {
-        const state = streakToggle.getAttribute('aria-checked') === 'true';
-        streakToggle.setAttribute('aria-checked', !state);
-        showToast(`Streak visibility ${!state ? 'visible' : 'hidden'}.`, 'info', 'flame');
-      });
-    }
-
     mainContent.querySelectorAll('[data-action="open-safety"]').forEach((btn) => {
       btn.addEventListener('click', openSafetyModal);
     });
@@ -1913,309 +1769,15 @@
    * Screen 5: Study Sessions
    */
   function renderSessions() {
-    const data = EduData.get();
-    const sessions = data.sessions || [];
-    const upcoming = sessions.filter((s) => s.status === 'upcoming');
-    const completed = sessions.filter((s) => s.status === 'completed');
-
-    const html = `
-      <div class="page-enter">
-        <div class="page-head">
-          <div>
-            <h1>Study sessions & reviews</h1>
-            <p>Schedule your next session, confirm completed meetings, and build your peer study record.</p>
-          </div>
-          <div class="page-actions">
-            ${inDevelopment('Sessions and reviews are not available yet.')}
-          </div>
-        </div>
-
-              ${inDevelopment('Sessions and reviews are not available yet.')}
-              ${false ? `<div class="session-layout">
-          <!-- Main List -->
-          <div>
-            <h2 style="font-size: 17px; margin-bottom: 14px;">Upcoming Sessions (${upcoming.length})</h2>
-            ${
-              upcoming.length === 0
-                ? `
-              <div class="card empty-state">
-                <div class="empty-icon">${icon('calendar-days')}</div>
-                <h3>No upcoming study sessions</h3>
-                <p>Plan a session with one of your active study partners.</p>
-                <button class="btn btn-primary" id="btn-empty-sched">${icon('calendar-days')} Schedule a session</button>
-              </div>
-            `
-                : `
-              <div class="session-list">
-                ${upcoming
-                  .map(
-                    (s) => `
-                  <div class="card session-item">
-                    <div class="calendar-tile">
-                      <span>${escapeHtml(s.monthStr)}</span>
-                      <strong>${escapeHtml(s.dayNum)}</strong>
-                    </div>
-
-                    <div>
-                      <h2>${escapeHtml(s.topic)}</h2>
-                      <p>With <strong>${escapeHtml(s.partnerName)}</strong> (${escapeHtml(s.track)}) · <strong>${escapeHtml(s.format)}</strong></p>
-                      <div class="session-time">
-                        ${icon('clock')}
-                        <span>${escapeHtml(s.date)} · ${escapeHtml(s.time)}</span>
-                      </div>
-                    </div>
-
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-                      ${
-                        s.canConfirmComplete
-                          ? `<button class="btn btn-primary btn-sm" data-action="confirm" data-id="${s.id}">${icon('check-circle')} Confirm completed</button>`
-                          : `<a href="${escapeHtml(s.link)}" target="_blank" class="btn btn-secondary btn-sm">${icon('video')} Open link</a>`
-                      }
-                      <button class="btn btn-secondary btn-sm" data-action="reschedule" data-id="${s.id}">Reschedule</button>
-                    </div>
-                  </div>
-                `
-                  )
-                  .join('')}
-              </div>
-            `
-            }
-
-            <h2 style="font-size: 17px; margin: 32px 0 14px;">Completed Sessions & Peer Reviews (${completed.length})</h2>
-            <div class="session-list">
-              ${completed
-                .map(
-                  (s) => `
-                <div class="card session-item">
-                  <div class="calendar-tile">
-                    <span>${escapeHtml(s.monthStr)}</span>
-                    <strong>${escapeHtml(s.dayNum)}</strong>
-                  </div>
-
-                  <div>
-                    <h2>${escapeHtml(s.topic)}</h2>
-                    <p>Studied with <strong>${escapeHtml(s.partnerName)}</strong> (${escapeHtml(s.track)})</p>
-                    <div class="session-time">
-                      <span class="badge badge-success">${icon('check-circle')} Completed & Confirmed</span>
-                      <span>${escapeHtml(s.date)}</span>
-                    </div>
-
-                    ${
-                      s.review
-                        ? `
-                      <div class="review-stars" style="margin: 8px 0 4px;">
-                        ${Array.from({ length: 5 })
-                          .map((_, i) => (i < s.review.stars ? icon('star') : '☆'))
-                          .join('')}
-                      </div>
-                      <blockquote style="margin: 0; color: var(--muted); font-size: 12px; font-style: italic;">"${escapeHtml(s.review.comment)}"</blockquote>
-                    `
-                        : ''
-                    }
-                  </div>
-
-                  <span class="badge badge-info" style="align-self: center;">+1 hr logged</span>
-                </div>
-              `
-                )
-                .join('')}
-            </div>
-          </div>
-
-          <!-- Sidebar Tips -->
-          <div class="session-side">
-            <div class="card session-tip">
-              <span class="badge badge-success">${icon('sparkles')} Best Practices</span>
-              <h3>4 rules for a high-yield study session</h3>
-              <p>How top pairs maintain momentum and reach high scores:</p>
-              <ol>
-                <li><strong>Agree on the agenda</strong> during the first 5 minutes.</li>
-                <li><strong>Enforce a strict timer</strong> for speaking tasks or math drills.</li>
-                <li><strong>Give honest, kind feedback</strong> on vocabulary or solution steps.</li>
-                <li><strong>Confirm completion immediately</strong> to lock in your study streak.</li>
-              </ol>
-            </div>
-
-            <div class="card review-card">
-              <div class="section-head" style="margin-bottom: 0;">
-                <div>
-                  <h3>Recent review received</h3>
-                </div>
-              </div>
-              <div class="review-stars">
-                ${icon('star')}${icon('star')}${icon('star')}${icon('star')}${icon('star')}
-              </div>
-              <blockquote>"Madina is punctual, highly disciplined with speaking timers, and gives great constructive feedback on Part 3 answers!"</blockquote>
-              <div class="review-person">
-                <span class="avatar avatar-sm avatar-aziza">AU</span>
-                <span>Aziza Usmanova · IELTS Partner</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>` : ''}
-    `;
-
-    mainContent.innerHTML = html;
-    hydrateIcons(mainContent);
-
-    const schedBtn = mainContent.querySelector('#btn-schedule-session');
-    const emptySchedBtn = mainContent.querySelector('#btn-empty-sched');
-    if (schedBtn) schedBtn.addEventListener('click', () => openScheduleModal());
-    if (emptySchedBtn) emptySchedBtn.addEventListener('click', () => openScheduleModal());
-
-    mainContent.querySelectorAll('[data-action="confirm"]').forEach((btn) => {
-      btn.addEventListener('click', () => openConfirmSessionModal(btn.getAttribute('data-id')));
-    });
-
-    mainContent.querySelectorAll('[data-action="reschedule"]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        openScheduleModal();
-      });
-    });
+    mainContent.innerHTML = `<div class="page-enter"><div class="page-head"><div><h1>Study sessions & reviews</h1><p>Session scheduling and peer reviews are not available yet.</p></div></div><div class="card card-pad">${inDevelopment('The backend does not provide session or review APIs yet.')}</div></div>`;
   }
 
   /**
    * Screen 6: Landing, Login, and Register
    */
   function renderLanding() {
-    const html = `
-      <div class="landing page-enter">
-        <header class="landing-nav">
-          <a class="brand" href="#/landing">
-            <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
-            <span>EduMate</span>
-          </a>
-
-          <div class="landing-links">
-            <a href="#/partners">Find Partners</a>
-            <a href="#/sessions">How Sessions Work</a>
-            <a href="#/profile">Safety Standards</a>
-          </div>
-
-          <div class="landing-actions">
-            <a href="#/login" class="btn btn-secondary btn-sm">Sign in</a>
-            <a href="#/dashboard" class="btn btn-primary btn-sm">${icon('arrow-right')} Open App</a>
-          </div>
-        </header>
-
-        <section class="landing-hero">
-          <div class="landing-copy">
-            <div class="landing-pill">
-              <span>Verified peer study network in Uzbekistan</span>
-            </div>
-            <h1>Find your ideal study partner. <em>Reach your goal.</em></h1>
-            <p>Connect with vetted students in your exact age group preparing for IELTS, SAT, and coding. Study together in structured sessions, stay accountable, and turn mutual goals into real results.</p>
-
-            <div class="landing-cta">
-              <a href="#/dashboard" class="btn btn-primary btn-lg">${icon('users')} Start studying together</a>
-              <a href="#/login" class="landing-text-link">Sign in to your account ${icon('chevron-right')}</a>
-            </div>
-
-            <div class="landing-proof">
-              <div class="avatar-stack">
-                <span class="avatar avatar-sm avatar-jasur">JR</span>
-                <span class="avatar avatar-sm avatar-nilufar">NK</span>
-                <span class="avatar avatar-sm avatar-aziza">AU</span>
-                <span class="avatar avatar-sm avatar-temur">TA</span>
-              </div>
-              <span>Joined by <strong>1,200+ students</strong> across Tashkent, Samarkand & Bukhara</span>
-            </div>
-          </div>
-
-          <div class="landing-visual">
-            <div class="visual-blob"></div>
-
-            <!-- Preview Card -->
-            <div class="match-preview">
-              <div class="preview-head">
-                <strong>High compatibility match</strong>
-                <span class="badge badge-success">96% match</span>
-              </div>
-
-              <div class="preview-person">
-                <span class="avatar avatar-lg avatar-jasur">JR</span>
-                <div>
-                  <h3>Jasur Rakhimov</h3>
-                  <p>IELTS Speaking · 16–17 · Tashkent</p>
-                </div>
-              </div>
-
-              <div class="preview-divider"></div>
-
-              <div class="preview-row">
-                ${icon('target')}
-                <span>Target: <strong>Band 7.5 (C1)</strong></span>
-              </div>
-              <div class="preview-row">
-                ${icon('clock')}
-                <span>Mon, Wed, Fri · Evening (19:00–21:00)</span>
-              </div>
-
-              <div class="preview-tags">
-                <span class="badge">Part 2 & 3</span>
-                <span class="badge">Lexical Focus</span>
-              </div>
-
-              <a href="#/dashboard" class="btn btn-primary btn-sm">${icon('send')} Connect & practice together</a>
-            </div>
-
-            <div class="floating-note">
-              <span>${icon('award')}</span>
-              <div>
-                <strong>12-day study streak</strong>
-                <small>+4.5 hours completed this week</small>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Benefits -->
-        <section class="landing-benefits">
-          <div class="benefits-head">
-            <div>
-              <h2>Engineered for real learning, not endless scrolling.</h2>
-            </div>
-            <p>Traditional study groups fall apart because of mismatched goals and unreliable schedules. EduMate solves this with purposeful matching and dual confirmation.</p>
-          </div>
-
-          <div class="benefit-grid">
-            <div class="benefit">
-              <span>${icon('target')}</span>
-              <h3>Goal & Track Overlap</h3>
-              <p>Match with students targeting the exact same score or syllabus (IELTS Speaking, SAT Math, Python) with compatible free hours.</p>
-            </div>
-
-            <div class="benefit">
-              <span>${icon('shield-check')}</span>
-              <h3>Safe Age Isolation</h3>
-              <p>Strict peer isolation for learners under 18. Contact details remain hidden until both study partners explicitly agree to match.</p>
-            </div>
-
-            <div class="benefit">
-              <span>${icon('check-circle')}</span>
-              <h3>Dual Session Accountability</h3>
-              <p>Sessions and streaks are only recorded when both partners confirm the meeting happened, keeping everyone honest and motivated.</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- Footer -->
-        <footer class="landing-footer">
-          <span>EduMate Prototype — Designed for students in Uzbekistan. 100% offline enabled.</span>
-          <div>
-            <a href="#/login" style="color: #ffffff; font-weight: 700; margin-right: 18px;">Sign in</a>
-          </div>
-        </footer>
-      </div>
-    `;
-
-    mainContent.innerHTML = html;
+    mainContent.innerHTML = `<div class="landing page-enter"><header class="landing-nav"><a class="brand" href="#/landing"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span>EduMate</span></a><div class="landing-actions"><a href="#/login" class="btn btn-secondary btn-sm">Sign in</a><a href="#/register" class="btn btn-primary btn-sm">Create account ${icon('arrow-right')}</a></div></header><section class="landing-hero"><div class="landing-copy"><div class="landing-pill"><span>EduMate study partner matching</span></div><h1>Make progress, <em>together.</em></h1><p>Set a study goal, share when you are available, and discover other learners with the same track.</p><div class="landing-cta"><a href="#/register" class="btn btn-primary btn-lg">Create your account ${icon('arrow-right')}</a><a href="#/login" class="landing-text-link">Already have an account? Sign in ${icon('chevron-right')}</a></div></div><div class="landing-visual"><div class="visual-blob"></div><div class="match-preview"><div class="preview-head"><strong>Build your study profile</strong></div><div class="preview-row">${icon('target')}<span>Choose a track and goal</span></div><div class="preview-row">${icon('calendar')}<span>Save your weekly availability</span></div><div class="preview-row">${icon('users')}<span>Find compatible partners</span></div>${inDevelopment('Sessions, reviews, and study statistics are not available yet.')}</div></div></section></div>`;
     hydrateIcons(mainContent);
-
-    mainContent.querySelectorAll('#btn-reset-demo, a[href="#/dashboard"]').forEach((el) => {
-      if (el.id === 'btn-reset-demo' || el.textContent.includes('Demo')) el.remove();
-    });
   }
 
   function renderLogin() {
@@ -2234,7 +1796,7 @@
             <form class="auth-form" id="login-form">
               <div class="field">
                 <label for="login-email">Email address</label>
-                <input type="email" id="login-email" class="input" value="madina@example.com" required autocomplete="email">
+                <input type="email" id="login-email" class="input" required autocomplete="email">
               </div>
 
               <div class="field">
@@ -2254,19 +1816,7 @@
           </div>
         </div>
 
-        <div class="auth-visual">
-          <div class="auth-quote">
-            <div class="quote-icon">${icon('heart-handshake')}</div>
-            <h2>"Studying alone was exhausting. With my partner Aziza, we practiced IELTS every evening and both got Band 7.5!"</h2>
-            <div class="auth-quote-person">
-              <span class="avatar avatar-aziza">AU</span>
-              <div>
-                <strong>Aziza & Madina</strong>
-                <small>IELTS Speaking study pair · Tashkent</small>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div class="auth-visual"><div class="auth-quote"><h2>Welcome back to your study space.</h2><p>Goals, availability, partner requests, and accepted mates are connected to your account.</p></div></div>
       </div>
     `;
 
@@ -2401,6 +1951,8 @@
 
   async function renderProfileOnboarding() {
     const me = await EduApi.getAboutMe();
+    if (!me.is_verified) { window.location.hash = '#/verify'; renderVerification(); return; }
+    if (me.is_onboarded) { window.location.hash = '#/dashboard'; return; }
     mainContent.innerHTML = `<section class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 2 OF 4 · YOUR PROFILE</span><h1>Tell us about yourself</h1><p>Your details help students find the right study partner.</p><form class="auth-form" id="onboard-profile"><div class="field"><label>City</label><input class="input" name="city" required></div><div class="field"><label>Age</label><input class="input" name="age" type="number" min="13" max="120" required></div><div class="field"><label>Study bio</label><textarea class="input" name="bio" maxlength="500" rows="3"></textarea></div><label><input type="checkbox" name="hidden"> Keep my profile hidden from partner discovery</label><button class="btn btn-primary btn-block" type="submit">Continue to study goal ${icon('arrow-right')}</button></form></div></div></section>`;
     mainContent.querySelector('#onboard-profile').addEventListener('submit', async (e) => {
       e.preventDefault(); const f = e.currentTarget; const age = Number(f.elements.age.value);
@@ -2410,15 +1962,52 @@
   }
 
   async function renderGoalOnboarding() {
-    const tracks=await EduApi.getTracks();
-    mainContent.innerHTML=`<section class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 3 OF 4 · YOUR GOAL</span><h1>Choose what you’ll work on</h1><p>Set a clear target so we can match you with compatible students.</p><form class="auth-form" id="onboard-goal"><div class="field"><label>Study track</label><select class="input" name="track" required>${tracks.map(t=>`<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}</select></div><div class="field-row"><div class="field"><label>Current level (1–5)</label><input class="input" name="current" type="number" min="1" max="5" value="3" required></div><div class="field"><label>Target level (1–5)</label><input class="input" name="target" type="number" min="1" max="5" value="4" required></div></div><div class="field-row"><div class="field"><label>Target date</label><input class="input" name="deadline" type="date" required></div><div class="field"><label>Hours per week</label><input class="input" name="hours" type="number" min="1" max="40" value="6" required></div></div><button class="btn btn-primary btn-block" type="submit">Continue to availability ${icon('arrow-right')}</button></form></div></div></section>`;
-    mainContent.querySelector('#onboard-goal').addEventListener('submit',async(e)=>{e.preventDefault();const f=e.currentTarget;try{await EduApi.createGoal({track:Number(f.elements.track.value),current_level:Number(f.elements.current.value),target_level:Number(f.elements.target.value),deadline:f.elements.deadline.value,weekly_hours:Number(f.elements.hours.value)});window.location.hash='#/onboarding-availability';renderAvailabilityOnboarding();}catch(err){showFormErrors(f,err);showToast(err.message||'Could not save goal','danger','alert-circle');}});
+    const tracks = await EduApi.getTracks();
+    mainContent.innerHTML = `<section class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 3 · YOUR GOAL</span><h1>Choose what you’ll work on</h1><p>Set a clear target so we can match you with compatible students.</p><form class="auth-form" id="onboard-goal"><div class="field"><label>Study track</label><select class="input" name="track" required>${tracks.map((track) => `<option value="${track.id}">${escapeHtml(track.name)}</option>`).join('')}</select></div><div class="field-row"><div class="field"><label>Current level (1–5)</label><input class="input" name="current" type="number" min="1" max="5" value="3" required></div><div class="field"><label>Target level (1–5)</label><input class="input" name="target" type="number" min="1" max="5" value="4" required></div></div><div class="field-row"><div class="field"><label>Target date</label><input class="input" name="deadline" type="date" required></div><div class="field"><label>Hours per week</label><input class="input" name="hours" type="number" min="1" max="40" value="6" required></div></div><button class="btn btn-primary btn-block" type="submit">Continue to availability ${icon('arrow-right')}</button></form></div></div></section>`;
+    const form = mainContent.querySelector('#onboard-goal');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      if (button.disabled) return;
+      button.disabled = true;
+      try {
+        await EduApi.createGoal({ track: Number(form.elements.track.value), current_level: Number(form.elements.current.value), target_level: Number(form.elements.target.value), deadline: form.elements.deadline.value, weekly_hours: Number(form.elements.hours.value) });
+        window.location.hash = '#/onboarding-availability';
+        renderAvailabilityOnboarding();
+      } catch (error) {
+        button.disabled = false;
+        showFormErrors(form, error);
+        showToast(error.message || 'Could not save goal', 'danger', 'alert-circle');
+      }
+    });
   }
 
   function renderAvailabilityOnboarding() {
-    const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']; const slots=['morning','afternoon','evening'];
-    mainContent.innerHTML=`<section class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 4 OF 4 · YOUR SCHEDULE</span><h1>When are you free?</h1><p>Choose at least one time that works for weekly study sessions.</p><form id="onboard-availability"><div class="availability-grid">${days.map((d,i)=>`<div class="field"><strong>${d}</strong>${slots.map(s=>`<label style="display:block;padding:5px"><input type="checkbox" name="slot" value="${i}:${s}"> ${s}</label>`).join('')}</div>`).join('')}</div><button class="btn btn-primary btn-block" type="submit">Finish onboarding ${icon('check')}</button></form></div></div></section>`;
-    mainContent.querySelector('#onboard-availability').addEventListener('submit',async(e)=>{e.preventDefault();const f=e.currentTarget;const selected=[...f.querySelectorAll('[name="slot"]:checked')];if(!selected.length){showToast('Choose at least one available time.','danger','alert-circle');return;}try{for(const el of selected){const [weekday,slot]=el.value.split(':');await EduApi.createSlot(Number(weekday),slot);}await EduData.refreshFromBackend();window.location.hash='#/dashboard';showToast('Your profile is ready. Welcome to EduMate!','success','check-circle');}catch(err){showFormErrors(f,err);showToast(err.message||'Could not save availability','danger','alert-circle');}});
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const slots = ['morning', 'afternoon', 'evening'];
+    mainContent.innerHTML = `<section class="auth-page page-enter"><div class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">STEP 4 · YOUR SCHEDULE</span><h1>When are you free?</h1><p>Choose at least one time that works for weekly study sessions.</p><form id="onboard-availability"><div class="availability-grid">${days.map((day, weekday) => `<div class="field"><strong>${day}</strong>${slots.map((slot) => `<label style="display:block;padding:5px"><input type="checkbox" name="slot" value="${weekday}:${slot}"> ${slot}</label>`).join('')}</div>`).join('')}</div><button class="btn btn-primary btn-block" type="submit">Finish onboarding ${icon('check')}</button></form></div></div></section>`;
+    const form = mainContent.querySelector('#onboard-availability');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const selected = [...form.querySelectorAll('[name="slot"]:checked')];
+      if (!selected.length) { showToast('Choose at least one available time.', 'danger', 'alert-circle'); return; }
+      const button = form.querySelector('button[type="submit"]');
+      if (button.disabled) return;
+      button.disabled = true;
+      try {
+        const schedule = {};
+        selected.forEach((item) => { const [weekday, slot] = item.value.split(':'); schedule[`${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][weekday]}-${slot}`] = true; });
+        await EduApi.saveAvailabilitySchedule(schedule);
+        await EduData.refreshFromBackend();
+        window.__edumateInitialLoad = true;
+        window.location.hash = '#/dashboard';
+        showToast('Your profile is ready. Welcome to EduMate!', 'success', 'check-circle');
+      } catch (error) {
+        button.disabled = false;
+        showFormErrors(form, error);
+        showToast(error.message || 'Could not save availability', 'danger', 'alert-circle');
+      }
+    });
   }
 
   /* ==========================================================================

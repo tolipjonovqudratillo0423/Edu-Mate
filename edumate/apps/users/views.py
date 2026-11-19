@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
+from django.db import transaction
 
 from apps.users.serializers import (
     UserSerializer, ProfileSerializer
@@ -55,6 +56,7 @@ class ProfileView(APIView):
         )
         
     
+    @transaction.atomic
     def post(self, request):
             
         serializer = self.serializer_class(data=request.data)
@@ -65,10 +67,9 @@ class ProfileView(APIView):
         if user.is_onboarded == True:
             raise ValidationError("User is already onboarded")
         
+        serializer.save(user=user)
         user.is_onboarded = True
         user.save(update_fields=["is_onboarded"])
-        
-        serializer.save(user=user)
         
         return ResponseMessage.success(
             message="Profile Created!",

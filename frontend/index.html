@@ -26,7 +26,7 @@
         <p class="nav-label">Workspace</p>
         <a href="#/dashboard" data-route-link="dashboard" data-icon="layout-dashboard">Dashboard</a>
         <a href="#/partners" data-route-link="partners" data-icon="users">Find partners</a>
-        <a href="#/matches" data-route-link="matches" data-icon="heart-handshake">Requests & matches <span class="nav-count" id="request-count">2</span></a>
+        <a href="#/matches" data-route-link="matches" data-icon="heart-handshake">Requests & matches <span class="nav-count" id="request-count" hidden></span></a>
         <a href="#/sessions" data-route-link="sessions" data-icon="calendar-days">Sessions</a>
         <p class="nav-label nav-label-second">Your space</p>
         <a href="#/profile" data-route-link="profile" data-icon="user-round">Profile & goals</a>
@@ -37,8 +37,8 @@
           <div><strong>Your space, your pace.</strong><p>Age-group matching and privacy controls are always on.</p></div>
         </div>
         <button class="sidebar-profile" data-nav="profile">
-          <span class="avatar avatar-sm avatar-madina">MA</span>
-          <span><strong>Madina Azimova</strong><small>IELTS Speaking · 16–17</small></span>
+          <span class="avatar avatar-sm" data-shell-avatar></span>
+          <span><strong data-shell-name>Your profile</strong><small data-shell-detail></small></span>
           <span data-icon="chevron-right"></span>
         </button>
       </div>
@@ -55,13 +55,13 @@
         <div class="topbar-actions">
           <button class="icon-btn" id="theme-toggle" aria-label="Switch to dark theme" data-icon="moon"></button>
           <div class="popover-wrap">
-            <button class="icon-btn notification-btn" id="notification-toggle" aria-label="Notifications, 3 unread" aria-expanded="false" data-icon="bell"><span class="notification-dot"></span></button>
+            <button class="icon-btn notification-btn" id="notification-toggle" aria-label="Notifications" aria-expanded="false" data-icon="bell"></button>
             <div class="popover notification-popover" id="notification-popover" hidden></div>
           </div>
           <div class="popover-wrap">
-            <button class="profile-trigger" id="profile-toggle" aria-label="Open profile menu" aria-expanded="false"><span class="avatar avatar-sm avatar-madina">MA</span><span data-icon="chevron-down"></span></button>
+          <button class="profile-trigger" id="profile-toggle" aria-label="Open profile menu" aria-expanded="false"><span class="avatar avatar-sm" data-shell-avatar></span><span data-icon="chevron-down"></span></button>
             <div class="popover profile-popover" id="profile-popover" hidden>
-              <div class="popover-profile"><span class="avatar avatar-madina">MA</span><div><strong>Madina Azimova</strong><small>madina@example.com</small></div></div>
+              <div class="popover-profile"><span class="avatar" data-shell-avatar></span><div><strong data-shell-name>Your profile</strong><small data-shell-detail></small></div></div>
               <button data-nav="profile" data-icon="user-round">View profile</button>
               <button id="menu-theme" data-icon="moon">Toggle theme</button>
               <hr>

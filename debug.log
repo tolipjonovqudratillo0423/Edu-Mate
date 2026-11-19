@@ -1,0 +1,3 @@
+[1117/174448.129:ERROR:third_party\crashpad\crashpad\util\win\registration_protocol_win.cc:108] CreateFile: Не удается найти указанный файл. (0x2)
+[1117/174451.152:ERROR:electron\shell\common\node_util.cc:76] CompileAndCall failed to evaluate electron script (electron/js2c/node_init): script execution has been terminated
+[1117/174458.406:ERROR:third_party\crashpad\crashpad\util\win\registration_protocol_win.cc:108] CreateFile: Не удается найти указанный файл. (0x2)

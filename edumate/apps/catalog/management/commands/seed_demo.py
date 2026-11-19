@@ -23,6 +23,8 @@ class Command(BaseCommand):
             first, last = full_name.split(" ", 1)
             user, _ = User.objects.get_or_create(email=f"demo{index}@edumate.demo", defaults={"first_name": first, "last_name": last})
             user.first_name, user.last_name = first, last
+            user.is_verified = True
+            user.is_onboarded = True
             user.set_password("demo12345")
             user.save()
             profile, _ = Profile.objects.get_or_create(user=user)
@@ -34,11 +36,11 @@ class Command(BaseCommand):
             users.append(user)
 
             Goal.objects.filter(user=user).delete()
-            if index:
-                for offset in range(1 + (index % 2)):
-                    current = 1 + ((index + offset) % 5)
-                    track = tracks[(index + offset) % 2]
-                    Goal.objects.create(user=user, track=track, current_level=current, target_level=min(5, current + 1), current_score=current, target_score=min(5, current + 1), deadline=date(2026, 12, 31), weekly_hours=4 + index % 6)
+            # All users get goals (including demo0)
+            for offset in range(1 + (index % 2)):
+                current = 1 + ((index + offset) % 5)
+                track = tracks[(index + offset) % 2]
+                Goal.objects.create(user=user, track=track, current_level=current, target_level=min(5, current + 1), current_score=current, target_score=min(5, current + 1), deadline=date(2026, 12, 31), weekly_hours=4 + index % 6)
             Availability.objects.filter(user=user).delete()
             for slot_index in range(3 + index % 4):
                 Availability.objects.create(user=user, weekday=(index + slot_index) % 7, slot=["morning", "afternoon", "evening"][slot_index % 3])
